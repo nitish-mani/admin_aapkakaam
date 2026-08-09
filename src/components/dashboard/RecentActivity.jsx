@@ -86,7 +86,7 @@ const RecentActivity = ({ activities = [], onRefresh, loading = false }) => {
 
   // Use provided activities or fallback to empty array
   const displayActivities = activities.length > 0 ? activities : [];
-
+  console.log(activities);
   return (
     <Paper sx={{ p: 3, height: "100%" }}>
       <Box

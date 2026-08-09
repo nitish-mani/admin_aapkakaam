@@ -299,101 +299,284 @@ const VendorsPage = () => {
       </Grid>
 
       {/* Charts */}
+
       <Grid container spacing={3} mb={4}>
+        {/* ================================
+             VENDOR TYPE DISTRIBUTION
+         ================================= */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3, height: "100%" }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Vendor Type Distribution
             </Typography>
-            <Box sx={{ height: 250 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ _id, percent }) =>
-                      `${_id?.toUpperCase() || "Other"} ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="count"
+
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 2,
+                width: "100%",
+                minHeight: 280,
+              }}
+            >
+              {/* Pie Chart */}
+              <Box
+                sx={{
+                  width: { xs: "50%", sm: 260 },
+                  minWidth: { xs: 180, sm: 260 },
+                  height: 260,
+                }}
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        Array.isArray(typeDistribution) ? typeDistribution : []
+                      }
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={85}
+                      dataKey="count"
+                      nameKey="_id"
+                      labelLine={false}
+                    >
+                      {(Array.isArray(typeDistribution)
+                        ? typeDistribution
+                        : []
+                      ).map((entry, index) => (
+                        <Cell
+                          key={`cell-${entry?._id || index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+
+                    <RechartsTooltip
+                      formatter={(value, name, props) => [
+                        value,
+                        props?.payload?._id || "Other",
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
+
+              {/* Scrollable Labels */}
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  pr: 1,
+
+                  "&::-webkit-scrollbar": {
+                    width: 6,
+                  },
+
+                  "&::-webkit-scrollbar-thumb": {
+                    borderRadius: 3,
+                    backgroundColor: "rgba(0,0,0,0.25)",
+                  },
+
+                  "&::-webkit-scrollbar-track": {
+                    backgroundColor: "transparent",
+                  },
+
+                  scrollbarWidth: "thin",
+                }}
+              >
+                {(Array.isArray(typeDistribution) ? typeDistribution : []).map(
+                  (entry, index) => {
+                    const name = entry?._id || "Other";
+                    const count = Number(entry?.count || 0);
+
+                    const total = typeDistribution.reduce(
+                      (sum, item) => sum + Number(item?.count || 0),
+                      0,
+                    );
+
+                    const percentage =
+                      total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
+
+                    return (
+                      <Box
+                        key={`legend-${name}-${index}`}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 1,
+                          mb: 1,
+                          p: 1,
+                          borderRadius: 1.5,
+                          backgroundColor: "action.hover",
+                          transition: "background-color 0.2s ease",
+
+                          "&:hover": {
+                            backgroundColor: "action.selected",
+                          },
+                        }}
+                      >
+                        {/* Label */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            minWidth: 0,
+                            flex: 1,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 11,
+                              height: 11,
+                              minWidth: 11,
+                              borderRadius: "50%",
+                              backgroundColor: COLORS[index % COLORS.length],
+                            }}
+                          />
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              minWidth: 0,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              textTransform: "capitalize",
+                            }}
+                            title={name}
+                          >
+                            {name}
+                          </Typography>
+                        </Box>
+
+                        {/* Count + Percentage */}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Typography variant="body2" fontWeight={700}>
+                            {count}
+                          </Typography>
+
+                          <Typography variant="caption" color="text.secondary">
+                            ({percentage}%)
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  },
+                )}
+
+                {/* Empty State */}
+                {(!Array.isArray(typeDistribution) ||
+                  typeDistribution.length === 0) && (
+                  <Box
+                    sx={{
+                      height: 240,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
-                    {typeDistribution.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+                    <Typography variant="body2" color="text.secondary">
+                      No vendor type data available
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Box>
           </Paper>
         </Grid>
+
+        {/* ================================
+            VENDOR PERFORMANCE
+        ================================= */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3, height: "100%" }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
               Vendor Performance
             </Typography>
+
             <Grid container spacing={2}>
+              {/* Total Earnings */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
                   p={2}
                   bgcolor="#e3f2fd"
                   borderRadius={2}
+                  sx={{ height: "100%" }}
                 >
                   <Typography variant="h5" color="primary">
                     {formatCurrency(performance?.totalEarnings || 0)}
                   </Typography>
+
                   <Typography variant="caption" color="textSecondary">
                     Total Earnings
                   </Typography>
                 </Box>
               </Grid>
+
+              {/* Total Commission */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
                   p={2}
                   bgcolor="#e8f5e9"
                   borderRadius={2}
+                  sx={{ height: "100%" }}
                 >
                   <Typography variant="h5" color="success.main">
                     {formatCurrency(performance?.totalCommission || 0)}
                   </Typography>
+
                   <Typography variant="caption" color="textSecondary">
                     Total Commission
                   </Typography>
                 </Box>
               </Grid>
+
+              {/* Total Bookings */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
                   p={2}
                   bgcolor="#fff3e0"
                   borderRadius={2}
+                  sx={{ height: "100%" }}
                 >
                   <Typography variant="h5" color="warning.main">
                     {formatNumber(performance?.bookingStats?.total || 0)}
                   </Typography>
+
                   <Typography variant="caption" color="textSecondary">
-                    Total Bookings
+                    Total Bookings as User
                   </Typography>
                 </Box>
               </Grid>
+
+              {/* Total Balance */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
                   p={2}
                   bgcolor="#fce4ec"
                   borderRadius={2}
+                  sx={{ height: "100%" }}
                 >
                   <Typography variant="h5" color="error.main">
                     {formatCurrency(performance?.totalBalance || 0)}
                   </Typography>
+
                   <Typography variant="caption" color="textSecondary">
                     Total Balance
                   </Typography>
@@ -409,7 +592,7 @@ const VendorsPage = () => {
         <Grid item xs={12} md={6}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" fontWeight={600} gutterBottom>
-              Booking Stats Breakdown
+              Booking Stats Breakdown as User
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={4}>
@@ -498,7 +681,7 @@ const VendorsPage = () => {
               <Grid item xs={12}>
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" gutterBottom>
-                  Share Stats
+                  Share Stats Related Bookings
                 </Typography>
                 <Grid container spacing={1}>
                   <Grid item xs={4}>
@@ -646,6 +829,7 @@ const VendorsPage = () => {
                 <TableCell>Rating</TableCell>
                 <TableCell>Earnings</TableCell>
                 <TableCell>Bookings</TableCell>
+                <TableCell>Orders</TableCell>
                 <TableCell>Balance</TableCell>
                 <TableCell>Shares</TableCell>
                 <TableCell align="center">Actions</TableCell>
@@ -679,7 +863,7 @@ const VendorsPage = () => {
                             {vendor.name.toUpperCase() || "Unknown"}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
-                            {vendor.email || "No email"}
+                            {vendor.phoneNo || "No phoneNo"}
                           </Typography>
                         </Box>
                       </Box>
@@ -724,7 +908,20 @@ const VendorsPage = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{formatCurrency(vendor.earning || 0)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(vendor.earning.toFixed(2) || 0)}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body2">
+                          {formatNumber(vendor.bookingCountVendor || 0)}
+                        </Typography>
+                        <Typography variant="caption" color="textSecondary">
+                          ✓{vendor.completedVendor || 0} ✗
+                          {vendor.canceledVendor || 0}
+                        </Typography>
+                      </Box>
+                    </TableCell>
                     <TableCell>
                       <Box>
                         <Typography variant="body2">
@@ -735,7 +932,9 @@ const VendorsPage = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{formatCurrency(vendor.balance || 0)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(vendor.balance.toFixed(2) || 0)}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={formatNumber(vendor.shareCount || 0)}
@@ -818,7 +1017,6 @@ const VendorsPage = () => {
                         {vendorDetail.data.vendor?.name.toUpperCase()}
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
-                        {vendorDetail.data.vendor?.email || "No email"} •{" "}
                         {vendorDetail.data.vendor?.phoneNo || "No phone"}
                       </Typography>
                       <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">

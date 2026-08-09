@@ -1,4 +1,6 @@
 import api from "./api";
+import store from "../utils/store";
+import { addDataAdmin } from "../utils/adminSlice";
 
 export const analyticsService = {
   // ============================================
@@ -13,16 +15,37 @@ export const analyticsService = {
     const response = await api.get("/admin/dashboard", {
       params: { refresh },
     });
+
+    const totals = response.data?.data?.totals ?? response.data?.totals ?? {};
+
+    localStorage.setItem("dashboardData", JSON.stringify(totals));
+
+    store.dispatch(addDataAdmin(totals));
+
     return response.data;
   },
 
   refreshDashboard: async () => {
     const response = await api.post("/admin/dashboard/refresh");
+
+    const totals = response.data?.data?.totals ?? response.data?.totals ?? {};
+
+    localStorage.setItem("dashboardData", JSON.stringify(totals));
+
+    store.dispatch(addDataAdmin(totals));
+
     return response.data;
   },
 
   clearCache: async () => {
     const response = await api.delete("/admin/dashboard/cache");
+
+    const totals = response.data?.data?.totals ?? response.data?.totals ?? {};
+
+    localStorage.setItem("dashboardData", JSON.stringify(totals));
+
+    store.dispatch(addDataAdmin(totals));
+
     return response.data;
   },
 
@@ -32,7 +55,6 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/users
-   * Get user analytics
    */
   getUserAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/users", {
@@ -46,12 +68,12 @@ export const analyticsService = {
         to: params.to || null,
       },
     });
+
     return response.data;
   },
 
   /**
    * GET /api/admin/analytics/users/:userId
-   * Get detailed analytics for a specific user
    */
   getUserDetailAnalytics: async (userId, params = {}) => {
     const response = await api.get(`/admin/analytics/users/${userId}`, {
@@ -60,6 +82,7 @@ export const analyticsService = {
         to: params.to || null,
       },
     });
+
     return response.data;
   },
 
@@ -69,21 +92,21 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/vendors
-   * Get vendor analytics - list all vendors with analytics
    */
   getVendorAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/vendors", { params });
+
     return response.data;
   },
 
   /**
    * GET /api/admin/analytics/vendors/:vendorId
-   * Get detailed analytics for a specific vendor
    */
   getVendorDetailAnalytics: async (vendorId, params = {}) => {
     const response = await api.get(`/admin/analytics/vendors/${vendorId}`, {
       params,
     });
+
     return response.data;
   },
 
@@ -93,7 +116,6 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/bookings
-   * Get booking analytics with pagination and search
    */
   getBookingAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/bookings", {
@@ -109,15 +131,16 @@ export const analyticsService = {
         userId: params.userId || null,
       },
     });
+
     return response.data;
   },
 
   /**
    * GET /api/admin/analytics/bookings/:bookingId
-   * Get detailed analytics for a specific booking
    */
   getBookingDetailAnalytics: async (bookingId) => {
     const response = await api.get(`/admin/analytics/bookings/${bookingId}`);
+
     return response.data;
   },
 
@@ -127,7 +150,6 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/revenue
-   * Get revenue analytics with enhanced features
    */
   getRevenueAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/revenue", {
@@ -141,15 +163,16 @@ export const analyticsService = {
         groupBy: params.groupBy || "day",
       },
     });
+
     return response.data;
   },
+
   // ============================================
   // REFERRAL ANALYTICS
   // ============================================
 
   /**
    * GET /api/admin/analytics/referrals
-   * Get referral analytics with enhanced features
    */
   getReferralAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/referrals", {
@@ -166,18 +189,20 @@ export const analyticsService = {
         search: params.search || "",
       },
     });
+
     return response.data;
   },
+
   // ============================================
   // SUMMARY ANALYTICS
   // ============================================
 
   /**
    * GET /api/admin/analytics/summary
-   * Get a summary of all analytics in one request
    */
   getAnalyticsSummary: async (params = {}) => {
     const response = await api.get("/admin/analytics/summary", { params });
+
     return response.data;
   },
 
@@ -187,14 +212,13 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/export
-   * Export analytics data
-   * Supports: users, vendors, bookings, revenue, referrals
    */
   exportAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/export", {
       params,
       responseType: params.format === "csv" ? "blob" : "json",
     });
+
     return response.data;
   },
 
@@ -204,10 +228,10 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/health
-   * Health check
    */
   healthCheck: async () => {
     const response = await api.get("/admin/analytics/health");
+
     return response.data;
   },
 };

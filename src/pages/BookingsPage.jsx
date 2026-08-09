@@ -541,6 +541,7 @@ const BookingsPage = () => {
                   const status = getStatusChip(booking);
                   return (
                     <TableRow key={booking._id} hover>
+                      {console.log(booking)}
                       <TableCell>
                         <Typography variant="body2" fontWeight={500}>
                           #{booking._id?.slice(-8) || "N/A"}
@@ -549,12 +550,14 @@ const BookingsPage = () => {
                       <TableCell>
                         <Box display="flex" alignItems="center" gap={1}>
                           <Avatar sx={{ width: 24, height: 24, fontSize: 12 }}>
-                            {booking.userId?.name?.charAt(0).toUpperCase() ||
+                            {booking.bookedById?.name
+                              ?.charAt(0)
+                              .toUpperCase() ||
                               booking.name?.charAt(0).toUpperCase() ||
                               "U"}
                           </Avatar>
                           <Typography variant="body2">
-                            {booking.userId?.name.toUpperCase() ||
+                            {booking.bookedById?.name.toUpperCase() ||
                               booking.name ||
                               "Unknown"}
                           </Typography>
@@ -579,7 +582,10 @@ const BookingsPage = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        ₹{booking.expenseUser || booking.expenseVendor || 0}
+                        ₹
+                        {booking.expenseUser.toFixed(2) ||
+                          booking.expenseVendor.toFixed(2) ||
+                          0}
                       </TableCell>
                       <TableCell>
                         {booking.rating > 0 ? (
@@ -739,26 +745,24 @@ const BookingsPage = () => {
                       />
                       User Details
                     </Typography>
-                    {bookingDetail.data.user ? (
+                    {bookingDetail.data.booking?.bookedById?._id ? (
                       <Box>
                         <Typography variant="body2">
                           <strong>Name:</strong>{" "}
-                          {bookingDetail.data.user.name.toUpperCase()}
+                          {bookingDetail.data.booking?.bookedById?.name?.toUpperCase()}
                         </Typography>
-                        <Typography variant="body2">
-                          <strong>Email:</strong>{" "}
-                          {bookingDetail.data.user.email || "N/A"}
-                        </Typography>
+
                         <Typography variant="body2">
                           <strong>Phone:</strong>{" "}
-                          {bookingDetail.data.user.phoneNo || "N/A"}
+                          {bookingDetail.data.booking?.bookedById?.phoneNo ||
+                            "N/A"}
                         </Typography>
                       </Box>
                     ) : (
                       <Box>
                         <Typography variant="body2">
                           <strong>Name:</strong>{" "}
-                          {bookingDetail.data.booking?.name.toUpperCase() ||
+                          {bookingDetail.data.booking?.bookedById?.name?.toUpperCase() ||
                             "N/A"}
                         </Typography>
                         <Typography variant="body2">
@@ -788,10 +792,7 @@ const BookingsPage = () => {
                           <strong>Name:</strong>{" "}
                           {bookingDetail.data.vendor.name.toUpperCase()}
                         </Typography>
-                        <Typography variant="body2">
-                          <strong>Email:</strong>{" "}
-                          {bookingDetail.data.vendor.email || "N/A"}
-                        </Typography>
+
                         <Typography variant="body2">
                           <strong>Phone:</strong>{" "}
                           {bookingDetail.data.vendor.phoneNo || "N/A"}
@@ -874,7 +875,7 @@ const BookingsPage = () => {
                       User Expense
                     </Typography>
                     <Typography variant="body2">
-                      ₹{bookingDetail.data.booking?.expenseUser || 0}
+                      ₹{bookingDetail.data.booking?.expenseUser.toFixed(2) || 0}
                     </Typography>
                   </Grid>
                   <Grid item xs={4}>
@@ -882,7 +883,9 @@ const BookingsPage = () => {
                       Vendor Expense
                     </Typography>
                     <Typography variant="body2">
-                      ₹{bookingDetail.data.booking?.expenseVendor || 0}
+                      ₹
+                      {bookingDetail.data.booking?.expenseVendor.toFixed(2) ||
+                        0}
                     </Typography>
                   </Grid>
                   <Grid item xs={4}>
@@ -891,8 +894,10 @@ const BookingsPage = () => {
                     </Typography>
                     <Typography variant="body2" color="success.main">
                       ₹
-                      {(bookingDetail.data.booking?.expenseUser || 0) +
-                        (bookingDetail.data.booking?.expenseVendor || 0)}
+                      {(
+                        (bookingDetail.data.booking?.expenseUser || 0) +
+                        (bookingDetail.data.booking?.expenseVendor || 0)
+                      ).toFixed(2)}
                     </Typography>
                   </Grid>
                 </Grid>
@@ -1026,7 +1031,7 @@ const BookingsPage = () => {
                                 />
                               </TableCell>
                               <TableCell align="right">
-                                ₹{history.expenseUser || 0}
+                                ₹{history.expenseUser.toFixed(2) || 0}
                               </TableCell>
                             </TableRow>
                           ))}

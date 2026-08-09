@@ -530,33 +530,37 @@ const RevenuePage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(vendorRevenue || []).map((vendor) => (
-                  <TableRow key={vendor.vendorId}>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor: "secondary.main",
-                          }}
-                        >
-                          {vendor.vendorName?.charAt(0).toUpperCase() || "V"}
-                        </Avatar>
-                        {vendor.vendorName?.toUpperCase() || "Unknown Vendor"}
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatCurrency(vendor.revenue)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatNumber(vendor.count)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatCurrency(vendor.avgOrderValue || 0)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(vendorRevenue || []).map((vendor) =>
+                  vendor.vendorId ? (
+                    <TableRow key={vendor.vendorId}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              bgcolor: "secondary.main",
+                            }}
+                          >
+                            {vendor.vendorName?.charAt(0).toUpperCase() || "V"}
+                          </Avatar>
+                          {vendor.vendorName?.toUpperCase() || "Unknown Vendor"}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(vendor.revenue)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(vendor.count)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(vendor.avgOrderValue || 0)}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    ""
+                  ),
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -579,33 +583,37 @@ const RevenuePage = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(userRevenue || []).map((user) => (
-                  <TableRow key={user.userId}>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor: "primary.main",
-                          }}
-                        >
-                          {user.userName?.charAt(0).toUpperCase() || "U"}
-                        </Avatar>
-                        {user.userName?.toUpperCase() || "Unknown User"}
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatCurrency(user.revenue)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatNumber(user.count)}
-                    </TableCell>
-                    <TableCell align="right">
-                      {formatCurrency(user.avgOrderValue || 0)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(userRevenue || []).map((user) =>
+                  user.userId ? (
+                    <TableRow key={user.userId}>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              bgcolor: "primary.main",
+                            }}
+                          >
+                            {user.userName?.charAt(0).toUpperCase() || "U"}
+                          </Avatar>
+                          {user.userName?.toUpperCase() || "Unknown User"}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(user.revenue)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumber(user.count)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(user.avgOrderValue || 0)}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    ""
+                  ),
+                )}
               </TableBody>
             </Table>
           </TableContainer>

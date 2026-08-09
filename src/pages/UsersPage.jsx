@@ -386,7 +386,7 @@ const UsersPage = () => {
           <Typography variant="h6" fontWeight={600} gutterBottom>
             Gender Distribution
           </Typography>
-          <Box sx={{ height: 200 }}>
+          <Box sx={{ height: 250 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -461,10 +461,9 @@ const UsersPage = () => {
             <TableHead>
               <TableRow>
                 <TableCell>User</TableCell>
-                <TableCell>Email</TableCell>
                 <TableCell>Phone</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Bookings</TableCell>
+                <TableCell>Orders</TableCell>
                 <TableCell>Shares</TableCell>
                 <TableCell>Earnings</TableCell>
                 <TableCell>Balance</TableCell>
@@ -500,7 +499,7 @@ const UsersPage = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{user.email || "N/A"}</TableCell>
+
                     <TableCell>{user.phoneNo || "N/A"}</TableCell>
                     <TableCell>
                       <Chip
@@ -536,8 +535,12 @@ const UsersPage = () => {
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{formatCurrency(user.earning || 0)}</TableCell>
-                    <TableCell>{formatCurrency(user.balance || 0)}</TableCell>
+                    <TableCell>
+                      {formatCurrency(user.earning.toFixed(2) || 0)}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(user.balance.toFixed(2) || 0)}
+                    </TableCell>
                     <TableCell>{formatDate(user.accountCreatedOn)}</TableCell>
                     <TableCell align="center">
                       <Tooltip title="View Details">
@@ -610,7 +613,6 @@ const UsersPage = () => {
                         {userDetail.data.user?.name.toUpperCase()}
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
-                        {userDetail.data.user?.email || "No email"} •{" "}
                         {userDetail.data.user?.phoneNo || "No phone"}
                       </Typography>
                       <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">
@@ -782,7 +784,7 @@ const UsersPage = () => {
                                 variant="caption"
                                 color="textSecondary"
                               >
-                                {type._id || "Other"}
+                                {type._id.toUpperCase() || "Other"}
                               </Typography>
                               <Typography variant="h6">{type.count}</Typography>
                               <Typography

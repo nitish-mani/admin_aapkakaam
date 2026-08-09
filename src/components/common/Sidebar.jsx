@@ -26,6 +26,7 @@ import {
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSelector } from "react-redux";
 
 const drawerWidth = 280;
 
@@ -73,6 +74,9 @@ const menuItems = [
 
 const Sidebar = ({ open, handleDrawerClose }) => {
   const { admin } = useAuth();
+
+  const dashboardData = useSelector((store) => store.admin.data);
+  console.log(dashboardData[0]);
 
   return (
     <Drawer
@@ -149,7 +153,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
               }}
             >
               <Chip
-                label={`Users: ${admin.totalUser || 0}`}
+                label={`Users: ${dashboardData[0]?.users || admin.totalUser || 0}`}
                 size="small"
                 sx={{
                   bgcolor: "rgba(255,255,255,0.2)",
@@ -158,7 +162,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
               />
 
               <Chip
-                label={`Vendors: ${admin.totalVendor || 0}`}
+                label={`Vendors: ${dashboardData[0]?.vendors || admin.totalVendor || 0}`}
                 size="small"
                 sx={{
                   bgcolor: "rgba(255,255,255,0.2)",
@@ -167,7 +171,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
               />
 
               <Chip
-                label={`Bookings: ${admin.totalBookings || 0}`}
+                label={`Bookings: ${dashboardData[0]?.bookings || admin.totalBookings || 0}`}
                 size="small"
                 sx={{
                   bgcolor: "rgba(255,255,255,0.2)",
