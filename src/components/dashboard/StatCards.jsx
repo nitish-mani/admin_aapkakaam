@@ -84,7 +84,6 @@ const StatCards = ({ totals, bookings, revenue, referrals }) => {
       value: formatNumber(totals?.users || 0),
       icon: <PeopleIcon />,
       color: "#3f51b5",
-      subtitle: `${formatNumber(totals?.activeUsers || 0)} active`,
     },
     {
       title: "Total Vendors",

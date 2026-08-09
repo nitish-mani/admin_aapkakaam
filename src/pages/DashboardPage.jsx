@@ -46,7 +46,6 @@ const DashboardPage = () => {
     recentActivities,
     generatedAt,
   } = dashboardData;
-
   const activeUsers = admin?.totalUser || totals?.users || 0;
 
   return (
@@ -92,7 +91,6 @@ const DashboardPage = () => {
         <StatCards
           totals={{
             ...totals,
-            activeUsers: activeUsers,
           }}
           bookings={bookings}
           revenue={revenue}
