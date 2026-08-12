@@ -23,10 +23,12 @@ import {
   Share as ShareIcon,
   Settings as SettingsIcon,
   AdminPanelSettings as AdminIcon,
+  PersonSearch as PersonSearchIcon,
+  Storefront as StorefrontIcon,
+  Message as MessageIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
-import { useSelector } from "react-redux";
 
 const drawerWidth = 280;
 
@@ -38,45 +40,46 @@ const DrawerHeader = styled("div")(({ theme }) => ({
   justifyContent: "flex-end",
 }));
 
-const NavItem = styled(ListItem, {
-  shouldForwardProp: (prop) => prop !== "active",
-})(({ theme, active }) => ({
+const NavItem = styled(ListItem)(({ theme, active }) => ({
   borderRadius: theme.spacing(1),
   margin: theme.spacing(0.5, 1),
   padding: theme.spacing(1, 2),
-
   backgroundColor: active ? theme.palette.primary.main : "transparent",
-
   color: active ? "#ffffff" : theme.palette.text.primary,
-
   "&:hover": {
     backgroundColor: active
       ? theme.palette.primary.dark
       : theme.palette.action.hover,
   },
-
   "& .MuiListItemIcon-root": {
     color: active ? "#ffffff" : theme.palette.text.secondary,
-
     minWidth: 40,
   },
 }));
 
 const menuItems = [
   { path: "/dashboard", icon: DashboardIcon, label: "Dashboard" },
-  { path: "/users", icon: PeopleIcon, label: "Users" },
-  { path: "/vendors", icon: StoreIcon, label: "Vendors" },
+  { path: "/users", icon: PeopleIcon, label: "Users Analytics" },
+  {
+    path: "/user-management",
+    icon: PersonSearchIcon,
+    label: "User Management",
+  },
+  { path: "/vendors", icon: StoreIcon, label: "Vendor Analytics" },
+  {
+    path: "/vendor-management",
+    icon: StorefrontIcon,
+    label: "Vendor Management",
+  },
   { path: "/bookings", icon: BookmarkIcon, label: "Bookings" },
   { path: "/revenue", icon: TrendingUpIcon, label: "Revenue" },
   { path: "/referrals", icon: ShareIcon, label: "Referrals" },
+  { path: "/concerns", icon: MessageIcon, label: "Concerns" },
   { path: "/settings", icon: SettingsIcon, label: "Settings" },
 ];
 
 const Sidebar = ({ open, handleDrawerClose }) => {
   const { admin } = useAuth();
-
-  const dashboardData = useSelector((store) => store.admin.data);
-  console.log(dashboardData[0]);
 
   return (
     <Drawer
@@ -129,56 +132,6 @@ const Sidebar = ({ open, handleDrawerClose }) => {
             <Typography variant="caption" sx={{ opacity: 0.8 }}>
               {admin.email || ""}
             </Typography>
-            <Box
-              display="flex"
-              gap={1}
-              mt={1}
-              sx={{
-                overflowX: "auto",
-                flexWrap: "nowrap",
-                width: "100%",
-                pb: 0.5,
-
-                // Hide scrollbar
-                "&::-webkit-scrollbar": {
-                  display: "none",
-                },
-                scrollbarWidth: "none",
-                msOverflowStyle: "none",
-
-                // Prevent chips from shrinking
-                "& .MuiChip-root": {
-                  flexShrink: 0,
-                },
-              }}
-            >
-              <Chip
-                label={`Users: ${dashboardData[0]?.users || admin.totalUser || 0}`}
-                size="small"
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                }}
-              />
-
-              <Chip
-                label={`Vendors: ${dashboardData[0]?.vendors || admin.totalVendor || 0}`}
-                size="small"
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                }}
-              />
-
-              <Chip
-                label={`Bookings: ${dashboardData[0]?.bookings || admin.totalBookings || 0}`}
-                size="small"
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  color: "white",
-                }}
-              />
-            </Box>
           </Box>
         </Box>
       )}
@@ -217,7 +170,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
           align="center"
           display="block"
         >
-          © {new Date().getFullYear()} Uslugi Technology Pvt. Ltd.
+          © {new Date().getFullYear()} AapKaKaam
         </Typography>
       </Box>
     </Drawer>

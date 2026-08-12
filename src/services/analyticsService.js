@@ -1,6 +1,7 @@
+// src/services/analyticsService.js
 import api from "./api";
 import store from "../utils/store";
-import { addDataAdmin } from "../utils/adminSlice";
+import { addDataAdmin, updateConcernStats } from "../utils/adminSlice";
 
 export const analyticsService = {
   // ============================================
@@ -94,7 +95,19 @@ export const analyticsService = {
    * GET /api/admin/analytics/vendors
    */
   getVendorAnalytics: async (params = {}) => {
-    const response = await api.get("/admin/analytics/vendors", { params });
+    const response = await api.get("/admin/analytics/vendors", {
+      params: {
+        page: params.page || 1,
+        limit: params.limit || 10,
+        search: params.search || "",
+        status: params.status || "all",
+        type: params.type || "all",
+        sortBy: params.sortBy || "rating",
+        period: params.period || "month",
+        from: params.from || null,
+        to: params.to || null,
+      },
+    });
 
     return response.data;
   },
@@ -104,7 +117,10 @@ export const analyticsService = {
    */
   getVendorDetailAnalytics: async (vendorId, params = {}) => {
     const response = await api.get(`/admin/analytics/vendors/${vendorId}`, {
-      params,
+      params: {
+        from: params.from || null,
+        to: params.to || null,
+      },
     });
 
     return response.data;
@@ -194,6 +210,122 @@ export const analyticsService = {
   },
 
   // ============================================
+  // CONCERN MANAGEMENT (Admin)
+  // ============================================
+
+  /**
+   * GET /api/concerns/admin/all
+   * Get all concerns with pagination and filters (Admin only)
+   */
+  getConcerns: async (params = {}) => {
+    const response = await api.get("/concerns/admin/all", {
+      params: {
+        status: params.status || "",
+        category: params.category || "",
+        priority: params.priority || "",
+        raisedBy: params.raisedBy || "",
+        page: params.page || 1,
+        limit: params.limit || 20,
+      },
+    });
+
+    // Update concern stats in Redux store
+    if (response.data?.concerns) {
+      const concerns = response.data.concerns;
+      const stats = {
+        total: response.data.pagination?.totalCount || concerns.length,
+        open: concerns.filter((c) => c.status === "Open").length,
+        inProgress: concerns.filter((c) => c.status === "InProgress").length,
+        resolved: concerns.filter((c) => c.status === "Resolved").length,
+        rejected: concerns.filter((c) => c.status === "Rejected").length,
+        closed: concerns.filter((c) => c.status === "Closed").length,
+      };
+      store.dispatch(updateConcernStats(stats));
+    }
+
+    return response.data;
+  },
+
+  /**
+   * GET /api/concerns/admin/:concernId
+   * Get single concern by ID (Admin only)
+   */
+  getConcernById: async (concernId) => {
+    const response = await api.get(`/concerns/admin/${concernId}`);
+    return response.data;
+  },
+
+  /**
+   * PUT /api/concerns/admin/:concernId/status
+   * Update concern status (Admin only)
+   */
+  updateConcernStatus: async (concernId, data) => {
+    const response = await api.put(`/concerns/admin/${concernId}/status`, data);
+
+    // Refresh concerns to update stats
+    if (response.data?.success) {
+      await analyticsService.getConcerns({ page: 1, limit: 20 });
+    }
+
+    return response.data;
+  },
+
+  /**
+   * DELETE /api/concerns/admin/:concernId
+   * Delete concern (soft delete) (Admin only)
+   */
+  deleteConcern: async (concernId) => {
+    const response = await api.delete(`/concerns/admin/${concernId}`);
+
+    // Refresh concerns to update stats
+    if (response.data?.success) {
+      await analyticsService.getConcerns({ page: 1, limit: 20 });
+    }
+
+    return response.data;
+  },
+
+  // ============================================
+  // CONCERN MANAGEMENT (User/Vendor)
+  // ============================================
+
+  /**
+   * POST /api/concerns
+   * Create new concern (User/Vendor only)
+   */
+  createConcern: async (data) => {
+    const response = await api.post("/concerns", data);
+    return response.data;
+  },
+
+  /**
+   * GET /api/concerns
+   * Get logged-in user's concerns (User/Vendor only)
+   */
+  getMyConcerns: async (params = {}) => {
+    const response = await api.get("/concerns", {
+      params: {
+        status: params.status || "",
+        category: params.category || "",
+        priority: params.priority || "",
+        raisedBy: params.raisedBy || "",
+        page: params.page || 1,
+        limit: params.limit || 20,
+      },
+    });
+    return response.data;
+  },
+
+  /**
+   * GET /api/concerns/:concernId
+   * Get single concern (own concern) (User/Vendor only)
+   */
+  getMyConcernById: async (concernId) => {
+    const response = await api.get(`/concerns/${concernId}`);
+    return response.data;
+  },
+
+  // ============================================
   // SUMMARY ANALYTICS
   // ============================================
 
@@ -212,6 +344,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/export
+   * Supports: users, vendors, bookings, revenue, referrals, concerns
    */
   exportAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/export", {
@@ -235,3 +368,5 @@ export const analyticsService = {
     return response.data;
   },
 };
+
+export default analyticsService;

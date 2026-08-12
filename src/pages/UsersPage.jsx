@@ -418,7 +418,7 @@ const UsersPage = () => {
       {/* Filters */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box display="flex" gap={2} flexWrap="wrap">
-          <TextField
+          {/* <TextField
             placeholder="Search users by name, email, phone..."
             value={searchTerm}
             onChange={handleSearch}
@@ -431,7 +431,7 @@ const UsersPage = () => {
                 </InputAdornment>
               ),
             }}
-          />
+          /> */}
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Status</InputLabel>
             <Select

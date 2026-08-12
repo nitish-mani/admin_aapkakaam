@@ -107,7 +107,7 @@ const Layout = () => {
             <Typography variant="h6" noWrap component="div" fontWeight={700}>
               Admin Panel
             </Typography>
-            <Chip label="v1.0" size="small" variant="outlined" sx={{ ml: 1 }} />
+            <Chip label="v2.0" size="small" variant="outlined" sx={{ ml: 1 }} />
           </Box>
 
           <Box display="flex" alignItems="center" gap={2}>

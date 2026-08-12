@@ -10,10 +10,15 @@ import LoadingSpinner from "./components/common/LoadingSpinner";
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const UsersPage = lazy(() => import("./pages/UsersPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const UserDetailPage = lazy(() => import("./pages/UserDetailPage"));
 const VendorsPage = lazy(() => import("./pages/VendorsPage"));
+const VendorManagementPage = lazy(() => import("./pages/VendorManagementPage"));
+const VendorDetailPage = lazy(() => import("./pages/VendorDetailPage"));
 const BookingsPage = lazy(() => import("./pages/BookingsPage"));
 const RevenuePage = lazy(() => import("./pages/RevenuePage"));
 const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
+const ConcernsPage = lazy(() => import("./pages/ConcernsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 
@@ -38,10 +43,24 @@ function App() {
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="users" element={<UsersPage />} />
+              <Route path="user-management" element={<UserManagementPage />} />
+              <Route
+                path="user-management/:phoneNo"
+                element={<UserDetailPage />}
+              />
               <Route path="vendors" element={<VendorsPage />} />
+              <Route
+                path="vendor-management"
+                element={<VendorManagementPage />}
+              />
+              <Route
+                path="vendor-management/:phoneNo"
+                element={<VendorDetailPage />}
+              />
               <Route path="bookings" element={<BookingsPage />} />
               <Route path="revenue" element={<RevenuePage />} />
               <Route path="referrals" element={<ReferralsPage />} />
+              <Route path="concerns" element={<ConcernsPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
 

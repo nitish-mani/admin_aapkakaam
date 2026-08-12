@@ -34,6 +34,9 @@ import {
   Tabs,
   Tab,
   Divider,
+  Badge,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -51,6 +54,8 @@ import {
   Cancel as CancelIcon,
   Pending as PendingIcon,
   Share as ShareIcon,
+  CalendarToday as CalendarIcon,
+  EventBusy as EventBusyIcon,
 } from "@mui/icons-material";
 import { useQuery } from "react-query";
 import { analyticsService } from "../services/analyticsService";
@@ -77,6 +82,10 @@ import {
 } from "recharts";
 
 const VendorsPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
@@ -189,6 +198,7 @@ const VendorsPage = () => {
   const typeDistribution = data?.data?.typeDistribution || [];
   const performance = data?.data?.performance || {};
   const pincodeDistribution = data?.data?.pincodeDistribution || [];
+  const leaveStats = data?.data?.leaveStats || {};
 
   const COLORS = [
     "#3f51b5",
@@ -212,6 +222,21 @@ const VendorsPage = () => {
     }
   };
 
+  // Helper to check if a leave is current
+  const isLeaveCurrent = (leave) => {
+    const now = new Date();
+    const from = new Date(leave.from);
+    const to = new Date(leave.to);
+    return leave.status === "active" && from <= now && to >= now;
+  };
+
+  // Helper to check if a leave is upcoming
+  const isLeaveUpcoming = (leave) => {
+    const now = new Date();
+    const from = new Date(leave.from);
+    return leave.status === "active" && from > now;
+  };
+
   return (
     <>
       <Helmet>
@@ -222,23 +247,28 @@ const VendorsPage = () => {
           display="flex"
           justifyContent="space-between"
           alignItems="center"
+          flexWrap="wrap"
+          gap={1}
           mb={2}
         >
-          <Typography variant="h4" fontWeight={700}>
-            Vendor Analytics
+          <Typography variant={isMobile ? "h5" : "h4"} fontWeight={700}>
+            {isMobile ? "Vendors" : "Vendor Analytics"}
           </Typography>
-          <Box>
+          <Box display="flex" gap={0.5}>
             <Button
               startIcon={<DownloadIcon />}
               onClick={handleExport}
               variant="outlined"
-              size="small"
-              sx={{ mr: 1 }}
+              size={isMobile ? "small" : "medium"}
             >
-              Export
+              {isMobile ? "" : "Export"}
             </Button>
             <Tooltip title="Refresh">
-              <IconButton onClick={handleRefresh} color="primary">
+              <IconButton
+                onClick={handleRefresh}
+                color="primary"
+                size={isMobile ? "small" : "medium"}
+              >
                 <RefreshIcon />
               </IconButton>
             </Tooltip>
@@ -247,50 +277,54 @@ const VendorsPage = () => {
       </Box>
 
       {/* Summary Cards */}
-      <Grid container spacing={3} mb={4}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={isMobile ? 1.5 : 3} mb={isMobile ? 2 : 4}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
               <Typography color="textSecondary" variant="caption">
                 Total Vendors
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700}>
                 {formatNumber(data?.data?.totals?.total || 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
               <Typography color="textSecondary" variant="caption">
                 Active Vendors
               </Typography>
-              <Typography variant="h5" fontWeight={700} color="success.main">
+              <Typography
+                variant={isMobile ? "h6" : "h5"}
+                fontWeight={700}
+                color="success.main"
+              >
                 {formatNumber(data?.data?.totals?.active || 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
               <Typography color="textSecondary" variant="caption">
                 Avg Rating
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700}>
                 {performance?.avgRating?.toFixed(1) || 0} ★
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card>
-            <CardContent>
+            <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
               <Typography color="textSecondary" variant="caption">
                 Total Earnings
               </Typography>
-              <Typography variant="h5" fontWeight={700}>
+              <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700}>
                 {formatCurrency(performance?.totalEarnings || 0)}
               </Typography>
             </CardContent>
@@ -298,15 +332,86 @@ const VendorsPage = () => {
         </Grid>
       </Grid>
 
-      {/* Charts */}
+      {/* Leave Stats Cards */}
+      {Object.keys(leaveStats).length > 0 && (
+        <Grid container spacing={isMobile ? 1.5 : 3} mb={isMobile ? 2 : 4}>
+          <Grid item xs={6} sm={6} md={3}>
+            <Card>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography color="textSecondary" variant="caption">
+                  Total Leaves
+                </Typography>
+                <Typography
+                  variant={isMobile ? "h6" : "h5"}
+                  fontWeight={700}
+                  color="info.main"
+                >
+                  {formatNumber(leaveStats?.totalLeaves || 0)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={6} md={3}>
+            <Card>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography color="textSecondary" variant="caption">
+                  Active Leaves
+                </Typography>
+                <Typography
+                  variant={isMobile ? "h6" : "h5"}
+                  fontWeight={700}
+                  color="warning.main"
+                >
+                  {formatNumber(leaveStats?.activeLeaves || 0)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={6} md={3}>
+            <Card>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography color="textSecondary" variant="caption">
+                  Current Active
+                </Typography>
+                <Typography
+                  variant={isMobile ? "h6" : "h5"}
+                  fontWeight={700}
+                  color="error.main"
+                >
+                  {formatNumber(leaveStats?.currentActiveLeaves || 0)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={6} sm={6} md={3}>
+            <Card>
+              <CardContent sx={{ p: isMobile ? 1.5 : 2 }}>
+                <Typography color="textSecondary" variant="caption">
+                  Cancelled Leaves
+                </Typography>
+                <Typography
+                  variant={isMobile ? "h6" : "h5"}
+                  fontWeight={700}
+                  color="text.secondary"
+                >
+                  {formatNumber(leaveStats?.cancelledLeaves || 0)}
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
 
-      <Grid container spacing={3} mb={4}>
-        {/* ================================
-             VENDOR TYPE DISTRIBUTION
-         ================================= */}
+      {/* Charts */}
+      <Grid container spacing={isMobile ? 1.5 : 3} mb={isMobile ? 2 : 4}>
+        {/* Vendor Type Distribution */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: "100%" }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+          <Paper sx={{ p: isMobile ? 1.5 : 3, height: "100%" }}>
+            <Typography
+              variant={isMobile ? "subtitle1" : "h6"}
+              fontWeight={600}
+              gutterBottom
+            >
               Vendor Type Distribution
             </Typography>
 
@@ -317,13 +422,14 @@ const VendorsPage = () => {
                 gap: 2,
                 width: "100%",
                 minHeight: 280,
+                flexDirection: isMobile ? "column" : "row",
               }}
             >
               {/* Pie Chart */}
               <Box
                 sx={{
-                  width: { xs: "50%", sm: 260 },
-                  minWidth: { xs: 180, sm: 260 },
+                  width: { xs: "80%", sm: 260 },
+                  minWidth: { xs: 150, sm: 260 },
                   height: 260,
                 }}
               >
@@ -370,20 +476,17 @@ const VendorsPage = () => {
                   overflowY: "auto",
                   overflowX: "hidden",
                   pr: 1,
-
+                  width: "100%",
                   "&::-webkit-scrollbar": {
                     width: 6,
                   },
-
                   "&::-webkit-scrollbar-thumb": {
                     borderRadius: 3,
                     backgroundColor: "rgba(0,0,0,0.25)",
                   },
-
                   "&::-webkit-scrollbar-track": {
                     backgroundColor: "transparent",
                   },
-
                   scrollbarWidth: "thin",
                 }}
               >
@@ -497,12 +600,14 @@ const VendorsPage = () => {
           </Paper>
         </Grid>
 
-        {/* ================================
-            VENDOR PERFORMANCE
-        ================================= */}
+        {/* Vendor Performance */}
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, height: "100%" }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+          <Paper sx={{ p: isMobile ? 1.5 : 3, height: "100%" }}>
+            <Typography
+              variant={isMobile ? "subtitle1" : "h6"}
+              fontWeight={600}
+              gutterBottom
+            >
               Vendor Performance
             </Typography>
 
@@ -516,7 +621,7 @@ const VendorsPage = () => {
                   borderRadius={2}
                   sx={{ height: "100%" }}
                 >
-                  <Typography variant="h5" color="primary">
+                  <Typography variant={isMobile ? "h6" : "h5"} color="primary">
                     {formatCurrency(performance?.totalEarnings || 0)}
                   </Typography>
 
@@ -535,7 +640,10 @@ const VendorsPage = () => {
                   borderRadius={2}
                   sx={{ height: "100%" }}
                 >
-                  <Typography variant="h5" color="success.main">
+                  <Typography
+                    variant={isMobile ? "h6" : "h5"}
+                    color="success.main"
+                  >
                     {formatCurrency(performance?.totalCommission || 0)}
                   </Typography>
 
@@ -554,7 +662,10 @@ const VendorsPage = () => {
                   borderRadius={2}
                   sx={{ height: "100%" }}
                 >
-                  <Typography variant="h5" color="warning.main">
+                  <Typography
+                    variant={isMobile ? "h6" : "h5"}
+                    color="warning.main"
+                  >
                     {formatNumber(performance?.bookingStats?.total || 0)}
                   </Typography>
 
@@ -573,7 +684,10 @@ const VendorsPage = () => {
                   borderRadius={2}
                   sx={{ height: "100%" }}
                 >
-                  <Typography variant="h5" color="error.main">
+                  <Typography
+                    variant={isMobile ? "h6" : "h5"}
+                    color="error.main"
+                  >
                     {formatCurrency(performance?.totalBalance || 0)}
                   </Typography>
 
@@ -588,10 +702,14 @@ const VendorsPage = () => {
       </Grid>
 
       {/* Additional Stats */}
-      <Grid container spacing={3} mb={4}>
+      <Grid container spacing={isMobile ? 1.5 : 3} mb={isMobile ? 2 : 4}>
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+          <Paper sx={{ p: isMobile ? 1.5 : 3 }}>
+            <Typography
+              variant={isMobile ? "subtitle1" : "h6"}
+              fontWeight={600}
+              gutterBottom
+            >
               Booking Stats Breakdown as User
             </Typography>
             <Grid container spacing={2}>
@@ -605,7 +723,10 @@ const VendorsPage = () => {
                   <Typography variant="caption" color="textSecondary">
                     Completed
                   </Typography>
-                  <Typography variant="h6" color="success.main">
+                  <Typography
+                    variant={isMobile ? "body1" : "h6"}
+                    color="success.main"
+                  >
                     {formatNumber(performance?.bookingStats?.completed || 0)}
                   </Typography>
                 </Box>
@@ -620,7 +741,10 @@ const VendorsPage = () => {
                   <Typography variant="caption" color="textSecondary">
                     Pending
                   </Typography>
-                  <Typography variant="h6" color="warning.main">
+                  <Typography
+                    variant={isMobile ? "body1" : "h6"}
+                    color="warning.main"
+                  >
                     {formatNumber(performance?.bookingStats?.pending || 0)}
                   </Typography>
                 </Box>
@@ -635,7 +759,10 @@ const VendorsPage = () => {
                   <Typography variant="caption" color="textSecondary">
                     Canceled
                   </Typography>
-                  <Typography variant="h6" color="error.main">
+                  <Typography
+                    variant={isMobile ? "body1" : "h6"}
+                    color="error.main"
+                  >
                     {formatNumber(performance?.bookingStats?.canceled || 0)}
                   </Typography>
                 </Box>
@@ -720,8 +847,12 @@ const VendorsPage = () => {
           </Paper>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" fontWeight={600} gutterBottom>
+          <Paper sx={{ p: isMobile ? 1.5 : 3 }}>
+            <Typography
+              variant={isMobile ? "subtitle1" : "h6"}
+              fontWeight={600}
+              gutterBottom
+            >
               Top Pincodes
             </Typography>
             <TableContainer>
@@ -758,14 +889,14 @@ const VendorsPage = () => {
       </Grid>
 
       {/* Filters */}
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box display="flex" gap={2} flexWrap="wrap">
+      <Paper sx={{ p: isMobile ? 1.5 : 3, mb: isMobile ? 2 : 3 }}>
+        <Box display="flex" gap={1.5} flexWrap="wrap" alignItems="center">
           <TextField
-            placeholder="Search vendors by name, email, phone, pincode..."
+            placeholder="Search vendors..."
             value={searchTerm}
             onChange={handleSearch}
             size="small"
-            sx={{ flex: 1, minWidth: 200 }}
+            sx={{ flex: 1, minWidth: 150 }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -774,7 +905,7 @@ const VendorsPage = () => {
               ),
             }}
           />
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Status</InputLabel>
             <Select
               value={statusFilter}
@@ -786,7 +917,7 @@ const VendorsPage = () => {
               <MenuItem value="blocked">Blocked</MenuItem>
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Type</InputLabel>
             <Select value={typeFilter} onChange={handleTypeChange} label="Type">
               <MenuItem value="all">All</MenuItem>
@@ -797,7 +928,7 @@ const VendorsPage = () => {
               <MenuItem value="cleaner">Cleaner</MenuItem>
             </Select>
           </FormControl>
-          <FormControl size="small" sx={{ minWidth: 150 }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Sort By</InputLabel>
             <Select value={sortBy} onChange={handleSortChange} label="Sort By">
               <MenuItem value="rating">Rating</MenuItem>
@@ -810,9 +941,9 @@ const VendorsPage = () => {
           <Typography
             variant="caption"
             color="textSecondary"
-            sx={{ alignSelf: "center", ml: "auto" }}
+            sx={{ alignSelf: "center", ml: "auto", whiteSpace: "nowrap" }}
           >
-            Showing {vendors.length} of {totalCount} vendors
+            Showing {vendors.length} of {totalCount}
           </Typography>
         </Box>
       </Paper>
@@ -820,7 +951,7 @@ const VendorsPage = () => {
       {/* Vendors Table */}
       <Paper>
         <TableContainer>
-          <Table>
+          <Table size={isMobile ? "small" : "medium"}>
             <TableHead>
               <TableRow>
                 <TableCell>Vendor</TableCell>
@@ -832,130 +963,185 @@ const VendorsPage = () => {
                 <TableCell>Orders</TableCell>
                 <TableCell>Balance</TableCell>
                 <TableCell>Shares</TableCell>
+                <TableCell>Leaves</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {vendors.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={11} align="center" sx={{ py: 4 }}>
                     <Typography color="textSecondary">
-                      No vendors found
+                      {searchTerm
+                        ? `No vendors found matching "${searchTerm}"`
+                        : "No vendors found"}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                vendors.map((vendor) => (
-                  <TableRow key={vendor._id} hover>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={1}>
-                        <Avatar
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            bgcolor: "secondary.main",
-                          }}
-                        >
-                          {vendor.name?.charAt(0).toUpperCase() || "V"}
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" fontWeight={500}>
-                            {vendor.name.toUpperCase() || "Unknown"}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {vendor.phoneNo || "No phoneNo"}
-                          </Typography>
+                vendors.map((vendor) => {
+                  const activeLeaves = vendor.leaveInfo?.activeLeaveCount || 0;
+                  const hasActiveLeaves = activeLeaves > 0;
+                  const currentActive =
+                    vendor.leaveInfo?.leaves?.filter((leave) =>
+                      isLeaveCurrent(leave),
+                    ).length || 0;
+
+                  return (
+                    <TableRow key={vendor._id} hover>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Avatar
+                            sx={{
+                              width: isMobile ? 28 : 32,
+                              height: isMobile ? 28 : 32,
+                              bgcolor: "secondary.main",
+                              fontSize: isMobile ? 12 : 14,
+                            }}
+                          >
+                            {vendor.name?.charAt(0).toUpperCase() || "V"}
+                          </Avatar>
+                          <Box>
+                            <Typography
+                              variant="body2"
+                              fontWeight={500}
+                              noWrap
+                              sx={{ maxWidth: isMobile ? 80 : 120 }}
+                            >
+                              {vendor.name?.toUpperCase() || "Unknown"}
+                            </Typography>
+                            {!isMobile && (
+                              <Typography
+                                variant="caption"
+                                color="textSecondary"
+                              >
+                                {vendor.phoneNo || "No phone"}
+                              </Typography>
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={vendor.type.toUpperCase() || "General"}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={vendor.status || "Active"}
-                        size="small"
-                        sx={{
-                          backgroundColor: getStatusColor(
-                            vendor.status || "active",
-                          ),
-                          color: "white",
-                          fontWeight: 500,
-                        }}
-                      />
-                      {vendor.isVerified && (
+                      </TableCell>
+                      <TableCell>
                         <Chip
-                          label="Verified"
+                          label={vendor.type?.toUpperCase() || "General"}
                           size="small"
-                          color="success"
                           variant="outlined"
-                          sx={{ ml: 0.5 }}
                         />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={0.5}>
-                        <StarIcon sx={{ fontSize: 16, color: "#ff9800" }} />
-                        <Typography variant="body2">
-                          {(vendor.rating || 0).toFixed(1)}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          ({vendor.ratingCount || 0})
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {formatCurrency(vendor.earning.toFixed(2) || 0)}
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">
-                          {formatNumber(vendor.bookingCountVendor || 0)}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          ✓{vendor.completedVendor || 0} ✗
-                          {vendor.canceledVendor || 0}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body2">
-                          {formatNumber(vendor.bookingCount || 0)}
-                        </Typography>
-                        <Typography variant="caption" color="textSecondary">
-                          ✓{vendor.completed || 0} ✗{vendor.canceled || 0}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      {formatCurrency(vendor.balance.toFixed(2) || 0)}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={formatNumber(vendor.shareCount || 0)}
-                        size="small"
-                        variant="outlined"
-                        icon={<ShareIcon fontSize="small" />}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title="View Details">
-                        <IconButton
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={vendor.status || "Active"}
                           size="small"
-                          color="primary"
-                          onClick={() => handleViewVendor(vendor._id)}
-                        >
-                          <ViewIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))
+                          sx={{
+                            backgroundColor: getStatusColor(
+                              vendor.status || "active",
+                            ),
+                            color: "white",
+                            fontWeight: 500,
+                          }}
+                        />
+                        {vendor.isVerified && !isMobile && (
+                          <Chip
+                            label="Verified"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            sx={{ ml: 0.5 }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={0.5}>
+                          <StarIcon
+                            sx={{
+                              fontSize: isMobile ? 14 : 16,
+                              color: "#ff9800",
+                            }}
+                          />
+                          <Typography variant="body2">
+                            {(vendor.rating || 0).toFixed(1)}
+                          </Typography>
+                          {!isMobile && (
+                            <Typography variant="caption" color="textSecondary">
+                              ({vendor.ratingCount || 0})
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {formatCurrency(vendor.earning?.toFixed(2) || 0)}
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {formatNumber(vendor.bookingCountVendor || 0)}
+                          </Typography>
+                          {!isMobile && (
+                            <Typography variant="caption" color="textSecondary">
+                              ✓{vendor.completedVendor || 0} ✗
+                              {vendor.canceledVendor || 0}
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body2">
+                            {formatNumber(vendor.bookingCount || 0)}
+                          </Typography>
+                          {!isMobile && (
+                            <Typography variant="caption" color="textSecondary">
+                              ✓{vendor.completed || 0} ✗{vendor.canceled || 0}
+                            </Typography>
+                          )}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {formatCurrency(vendor.balance?.toFixed(2) || 0)}
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={formatNumber(vendor.shareCount || 0)}
+                          size="small"
+                          variant="outlined"
+                          icon={<ShareIcon fontSize="small" />}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {hasActiveLeaves ? (
+                          <Badge
+                            badgeContent={currentActive || activeLeaves}
+                            color={currentActive > 0 ? "error" : "warning"}
+                          >
+                            <Chip
+                              label={`${activeLeaves} active`}
+                              size="small"
+                              color={currentActive > 0 ? "error" : "warning"}
+                              icon={<CalendarIcon fontSize="small" />}
+                            />
+                          </Badge>
+                        ) : (
+                          <Chip
+                            label="No leaves"
+                            size="small"
+                            variant="outlined"
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleViewVendor(vendor._id)}
+                          >
+                            <ViewIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -1014,7 +1200,7 @@ const VendorsPage = () => {
                     </Avatar>
                     <Box>
                       <Typography variant="h6">
-                        {vendorDetail.data.vendor?.name.toUpperCase()}
+                        {vendorDetail.data.vendor?.name?.toUpperCase()}
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
                         {vendorDetail.data.vendor?.phoneNo || "No phone"}
@@ -1022,7 +1208,7 @@ const VendorsPage = () => {
                       <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">
                         <Chip
                           label={
-                            vendorDetail.data.vendor?.type.toUpperCase() ||
+                            vendorDetail.data.vendor?.type?.toUpperCase() ||
                             "General"
                           }
                           size="small"
@@ -1055,11 +1241,18 @@ const VendorsPage = () => {
                 value={detailTab}
                 onChange={(e, v) => setDetailTab(v)}
                 sx={{ mb: 2 }}
+                variant={isMobile ? "scrollable" : "standard"}
+                scrollButtons={isMobile ? "auto" : false}
               >
                 <Tab label="Overview" />
                 <Tab label="Bookings" />
                 <Tab label="Revenue" />
                 <Tab label="Stats" />
+                <Tab
+                  label="Leaves"
+                  icon={<CalendarIcon />}
+                  iconPosition="start"
+                />
               </Tabs>
 
               {detailTab === 0 && (
@@ -1474,6 +1667,307 @@ const VendorsPage = () => {
                       </Paper>
                     </Grid>
                   </Grid>
+                </Box>
+              )}
+
+              {/* Leaves Tab */}
+              {detailTab === 4 && (
+                <Box>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={2}
+                  >
+                    <Typography variant="subtitle2" gutterBottom>
+                      Leave Information
+                    </Typography>
+                    {vendorDetail.data.leaves?.data?.length > 0 && (
+                      <Chip
+                        label={`${vendorDetail.data.leaves.data.length} total`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
+
+                  {/* Leave Stats Cards */}
+                  {vendorDetail.data.leaves?.stats && (
+                    <Grid container spacing={1} sx={{ mb: 2 }}>
+                      <Grid item xs={3}>
+                        <Paper
+                          sx={{ p: 1, textAlign: "center", bgcolor: "#fff3e0" }}
+                        >
+                          <Typography variant="caption" color="textSecondary">
+                            Total
+                          </Typography>
+                          <Typography variant="h6" fontWeight={700}>
+                            {vendorDetail.data.leaves.stats.total || 0}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Paper
+                          sx={{ p: 1, textAlign: "center", bgcolor: "#e8f5e9" }}
+                        >
+                          <Typography variant="caption" color="textSecondary">
+                            Active
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            color="success.main"
+                          >
+                            {vendorDetail.data.leaves.stats.active || 0}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Paper
+                          sx={{ p: 1, textAlign: "center", bgcolor: "#fce4ec" }}
+                        >
+                          <Typography variant="caption" color="textSecondary">
+                            Current
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            color="error.main"
+                          >
+                            {vendorDetail.data.leaves.stats.currentActive || 0}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Paper
+                          sx={{ p: 1, textAlign: "center", bgcolor: "#f3e5f5" }}
+                        >
+                          <Typography variant="caption" color="textSecondary">
+                            Upcoming
+                          </Typography>
+                          <Typography
+                            variant="h6"
+                            fontWeight={700}
+                            color="warning.main"
+                          >
+                            {vendorDetail.data.leaves?.upcoming?.length || 0}
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  )}
+
+                  {vendorDetail.data.leaves?.data?.length > 0 ? (
+                    <>
+                      <TableContainer sx={{ maxHeight: 300 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                From
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>To</TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                Duration
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                Reason
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: 600 }}>
+                                Status
+                              </TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {vendorDetail.data.leaves.data.map(
+                              (leave, index) => {
+                                const now = new Date();
+                                const from = new Date(leave.from);
+                                const to = new Date(leave.to);
+                                const isCurrent =
+                                  leave.status === "active" &&
+                                  from <= now &&
+                                  to >= now;
+                                const isUpcoming =
+                                  leave.status === "active" && from > now;
+                                const isPast =
+                                  leave.status === "active" && to < now;
+
+                                // Calculate duration in days
+                                const durationDays =
+                                  Math.ceil(
+                                    (to - from) / (1000 * 60 * 60 * 24),
+                                  ) + 1;
+
+                                let statusLabel = leave.status;
+                                let chipColor = "default";
+
+                                if (isCurrent) {
+                                  statusLabel = "● Current";
+                                  chipColor = "error";
+                                } else if (isUpcoming) {
+                                  statusLabel = "⏳ Upcoming";
+                                  chipColor = "warning";
+                                } else if (
+                                  isPast &&
+                                  leave.status === "active"
+                                ) {
+                                  statusLabel = "✓ Expired";
+                                  chipColor = "default";
+                                } else if (leave.status === "cancelled") {
+                                  statusLabel = "✕ Cancelled";
+                                  chipColor = "default";
+                                }
+
+                                return (
+                                  <TableRow
+                                    key={index}
+                                    hover
+                                    sx={{
+                                      backgroundColor: isCurrent
+                                        ? "#fff3e0"
+                                        : isUpcoming
+                                          ? "#e3f2fd"
+                                          : "inherit",
+                                      "&:hover": {
+                                        backgroundColor: isCurrent
+                                          ? "#ffe0b2"
+                                          : isUpcoming
+                                            ? "#bbdefb"
+                                            : "action.hover",
+                                      },
+                                    }}
+                                  >
+                                    <TableCell>
+                                      {formatDate(leave.from)}
+                                    </TableCell>
+                                    <TableCell>
+                                      {formatDate(leave.to)}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Chip
+                                        label={`${durationDays} day${
+                                          durationDays > 1 ? "s" : ""
+                                        }`}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontSize: "0.65rem" }}
+                                      />
+                                    </TableCell>
+                                    <TableCell>
+                                      <Tooltip
+                                        title={
+                                          leave.reason || "No reason provided"
+                                        }
+                                      >
+                                        <Typography
+                                          variant="body2"
+                                          noWrap
+                                          sx={{ maxWidth: 120 }}
+                                        >
+                                          {leave.reason || "N/A"}
+                                        </Typography>
+                                      </Tooltip>
+                                    </TableCell>
+                                    <TableCell>
+                                      <Chip
+                                        label={statusLabel}
+                                        size="small"
+                                        color={chipColor}
+                                        sx={{
+                                          fontWeight:
+                                            isCurrent || isUpcoming ? 600 : 400,
+                                          "& .MuiChip-label": {
+                                            fontSize: "0.7rem",
+                                          },
+                                        }}
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              },
+                            )}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+
+                      {/* Leave Summary */}
+                      <Box
+                        sx={{
+                          mt: 2,
+                          display: "flex",
+                          gap: 2,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              bgcolor: "error.main",
+                            }}
+                          />
+                          <Typography variant="caption">
+                            Current Leave
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              bgcolor: "warning.main",
+                            }}
+                          />
+                          <Typography variant="caption">
+                            Upcoming Leave
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              bgcolor: "success.main",
+                            }}
+                          />
+                          <Typography variant="caption">
+                            Active Leave
+                          </Typography>
+                        </Box>
+                        <Box display="flex" alignItems="center" gap={1}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: "50%",
+                              bgcolor: "grey.400",
+                            }}
+                          />
+                          <Typography variant="caption">
+                            Expired/Cancelled
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </>
+                  ) : (
+                    <Box sx={{ py: 4, textAlign: "center" }}>
+                      <CalendarIcon
+                        sx={{ fontSize: 48, color: "action.disabled", mb: 1 }}
+                      />
+                      <Typography variant="body2" color="textSecondary">
+                        No leave records found for this vendor
+                      </Typography>
+                      <Typography variant="caption" color="textSecondary">
+                        This vendor has not taken any leave yet
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               )}
             </Box>
