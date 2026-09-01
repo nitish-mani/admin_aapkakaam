@@ -56,6 +56,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/users
+   * Get paginated user list with filters
    */
   getUserAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/users", {
@@ -75,6 +76,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/users/:userId
+   * Get detailed analytics for a specific user
    */
   getUserDetailAnalytics: async (userId, params = {}) => {
     const response = await api.get(`/admin/analytics/users/${userId}`, {
@@ -93,6 +95,8 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/vendors
+   * Get paginated vendor list with filters, sorting, and leave information
+   * This is the main vendor listing endpoint for the table view
    */
   getVendorAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/vendors", {
@@ -108,12 +112,19 @@ export const analyticsService = {
         to: params.to || null,
       },
     });
-
     return response.data;
   },
 
   /**
    * GET /api/admin/analytics/vendors/:vendorId
+   * Get detailed analytics for a specific vendor including:
+   * - Complete vendor profile
+   * - Booking timeline and statistics
+   * - Revenue and transaction details
+   * - Referral/share stats
+   * - Leave information with status tracking
+   * - Top users who booked this vendor
+   * - Booking patterns
    */
   getVendorDetailAnalytics: async (vendorId, params = {}) => {
     const response = await api.get(`/admin/analytics/vendors/${vendorId}`, {
@@ -126,12 +137,27 @@ export const analyticsService = {
     return response.data;
   },
 
+  /**
+   * Alias for getVendorAnalytics - for consistency with naming
+   */
+  getVendorList: async (params = {}) => {
+    return analyticsService.getVendorAnalytics(params);
+  },
+
+  /**
+   * Alias for getVendorDetailAnalytics - for consistency with naming
+   */
+  getVendorDetail: async (vendorId, params = {}) => {
+    return analyticsService.getVendorDetailAnalytics(vendorId, params);
+  },
+
   // ============================================
   // BOOKING ANALYTICS
   // ============================================
 
   /**
    * GET /api/admin/analytics/bookings
+   * Get paginated booking list with filters
    */
   getBookingAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/bookings", {
@@ -153,6 +179,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/bookings/:bookingId
+   * Get detailed analytics for a specific booking
    */
   getBookingDetailAnalytics: async (bookingId) => {
     const response = await api.get(`/admin/analytics/bookings/${bookingId}`);
@@ -166,6 +193,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/revenue
+   * Get revenue analytics with filters
    */
   getRevenueAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/revenue", {
@@ -189,6 +217,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/referrals
+   * Get referral analytics with filters
    */
   getReferralAnalytics: async (params = {}) => {
     const response = await api.get("/admin/analytics/referrals", {
@@ -331,6 +360,7 @@ export const analyticsService = {
 
   /**
    * GET /api/admin/analytics/summary
+   * Get analytics summary
    */
   getAnalyticsSummary: async (params = {}) => {
     const response = await api.get("/admin/analytics/summary", { params });
@@ -354,14 +384,55 @@ export const analyticsService = {
 
     return response.data;
   },
+  // ============================================
+  // APP VERSION MANAGEMENT
+  // ============================================
+
+  getAppVersions: async () => {
+    const response = await api.get("/admin/app-versions");
+
+    return response.data;
+  },
+
+  updateAppVersion: async (platform, data) => {
+    const response = await api.put(`/admin/app-versions/${platform}`, data);
+
+    return response.data;
+  },
+
+  getAppVersionAnalytics: async () => {
+    const response = await api.get("/admin/app-versions/analytics");
+
+    return response.data;
+  },
+
+  // ============================================
+  // WEBSITE MAINTENANCE MANAGEMENT
+  // ============================================
+
+  /**
+   * GET /api/admin/website-maintenance
+   * Get website maintenance configuration
+   */
+  getWebsiteMaintenance: async () => {
+    const response = await api.get("/admin/website-maintenance");
+    return response.data;
+  },
+
+  /**
+   * PUT /api/admin/website-maintenance
+   * Update website maintenance configuration
+   */
+  updateWebsiteMaintenance: async (data) => {
+    const response = await api.put("/admin/website-maintenance", data);
+
+    return response.data;
+  },
 
   // ============================================
   // HEALTH CHECK
   // ============================================
 
-  /**
-   * GET /api/admin/analytics/health
-   */
   healthCheck: async () => {
     const response = await api.get("/admin/analytics/health");
 

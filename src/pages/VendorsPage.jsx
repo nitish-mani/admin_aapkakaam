@@ -1,6 +1,7 @@
 // src/pages/VendorsPage.jsx
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
+import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import {
   Box,
   Paper,
@@ -26,7 +27,6 @@ import {
   InputLabel,
   Button,
   Avatar,
-  LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -45,17 +45,12 @@ import {
   Visibility as ViewIcon,
   Star as StarIcon,
   Store as StoreIcon,
-  TrendingUp as TrendingUpIcon,
-  Money as MoneyIcon,
-  Phone as PhoneIcon,
-  Email as EmailIcon,
   LocationOn as LocationIcon,
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Pending as PendingIcon,
   Share as ShareIcon,
   CalendarToday as CalendarIcon,
-  EventBusy as EventBusyIcon,
 } from "@mui/icons-material";
 import { useQuery } from "react-query";
 import { analyticsService } from "../services/analyticsService";
@@ -96,7 +91,14 @@ const VendorsPage = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [detailTab, setDetailTab] = useState(0);
 
-  const { data, isLoading, refetch } = useQuery(
+  // ============================================================
+  // QUERY: Vendor List (with pagination, filters, sorting)
+  // ============================================================
+  const {
+    data: listData,
+    isLoading: listLoading,
+    refetch: refetchList,
+  } = useQuery(
     [
       "vendors",
       page,
@@ -107,7 +109,7 @@ const VendorsPage = () => {
       sortBy,
     ],
     () =>
-      analyticsService.getVendorAnalytics({
+      analyticsService.getVendorList({
         page: page + 1,
         limit: rowsPerPage,
         search: searchTerm,
@@ -118,55 +120,78 @@ const VendorsPage = () => {
     {
       keepPreviousData: true,
       refetchOnWindowFocus: false,
+      staleTime: 30000, // 30 seconds
     },
   );
-
+  // ============================================================
+  // QUERY: Vendor Detail (single vendor analytics)
+  // ============================================================
   const {
-    data: vendorDetail,
+    data: detailData,
     isLoading: detailLoading,
     refetch: refetchDetail,
+    isError: detailError,
   } = useQuery(
     ["vendorDetail", selectedVendor],
     () =>
-      selectedVendor
-        ? analyticsService.getVendorDetailAnalytics(selectedVendor)
-        : null,
+      selectedVendor ? analyticsService.getVendorDetail(selectedVendor) : null,
     {
       enabled: !!selectedVendor,
       refetchOnWindowFocus: false,
+      staleTime: 60000, // 1 minute
+      onError: (error) => {
+        toast.error("Failed to load vendor details");
+        console.error("Vendor detail error:", error);
+      },
     },
   );
 
+  // ============================================================
+  // HANDLERS
+  // ============================================================
   const handleChangePage = (event, newPage) => setPage(newPage);
+
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
   const handleSearch = (event) => {
     setSearchTerm(event.target.value);
     setPage(0);
   };
+
   const handleStatusChange = (event) => {
     setStatusFilter(event.target.value);
     setPage(0);
   };
+
   const handleTypeChange = (event) => {
     setTypeFilter(event.target.value);
     setPage(0);
   };
+
   const handleSortChange = (event) => {
     setSortBy(event.target.value);
     setPage(0);
   };
+
   const handleRefresh = () => {
-    refetch();
+    refetchList();
     toast.success("Vendor data refreshed");
   };
 
   const handleViewVendor = (vendorId) => {
     setSelectedVendor(vendorId);
     setViewDialogOpen(true);
-    refetchDetail();
+    // Refetch detail data when dialog opens
+    setTimeout(() => refetchDetail(), 100);
+  };
+
+  const handleCloseDialog = () => {
+    setViewDialogOpen(false);
+    setSelectedVendor(null);
+    setDetailTab(0);
   };
 
   const handleExport = async () => {
@@ -191,38 +216,9 @@ const VendorsPage = () => {
     }
   };
 
-  if (isLoading) return <LoadingSpinner />;
-
-  const vendors = data?.data?.vendors || data?.data?.topVendors || [];
-  const totalCount = data?.data?.totals?.total || 0;
-  const typeDistribution = data?.data?.typeDistribution || [];
-  const performance = data?.data?.performance || {};
-  const pincodeDistribution = data?.data?.pincodeDistribution || [];
-  const leaveStats = data?.data?.leaveStats || {};
-
-  const COLORS = [
-    "#3f51b5",
-    "#f50057",
-    "#ff9800",
-    "#4caf50",
-    "#2196f3",
-    "#9c27b0",
-  ];
-
-  const getBookingStatusIcon = (status) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircleIcon fontSize="small" />;
-      case "pending":
-        return <PendingIcon fontSize="small" />;
-      case "canceled":
-        return <CancelIcon fontSize="small" />;
-      default:
-        return null;
-    }
-  };
-
-  // Helper to check if a leave is current
+  // ============================================================
+  // HELPERS
+  // ============================================================
   const isLeaveCurrent = (leave) => {
     const now = new Date();
     const from = new Date(leave.from);
@@ -230,18 +226,240 @@ const VendorsPage = () => {
     return leave.status === "active" && from <= now && to >= now;
   };
 
-  // Helper to check if a leave is upcoming
   const isLeaveUpcoming = (leave) => {
     const now = new Date();
     const from = new Date(leave.from);
     return leave.status === "active" && from > now;
   };
 
+  // ============================================================
+  // DATA EXTRACTION
+  // ============================================================
+  const isLoading = listLoading;
+
+  // ============================================================
+  // DATA FROM API
+  // ============================================================
+
+  // getVendorAnalytics() returns response.data
+  //
+  // Therefore:
+  //
+  // listData
+  //   ├── success
+  //   └── data
+  //        ├── vendors
+  //        ├── typeDistribution
+  //        ├── pagination
+  //        ├── performance
+  //        └── ...
+  //
+  // ============================================================
+
+  const apiData = listData?.data ?? {};
+
+  // ============================================================
+  // VENDORS
+  // ============================================================
+
+  const rawVendors = Array.isArray(apiData.vendors) ? apiData.vendors : [];
+
+  // ============================================================
+  // NORMALIZE VENDORS
+  // ============================================================
+
+  const vendors = rawVendors.map((vendor) => {
+    const types = Array.isArray(vendor?.type)
+      ? vendor.type
+      : vendor?.type
+        ? [vendor.type]
+        : [];
+
+    const wageRates = Array.isArray(vendor?.wageRate)
+      ? vendor.wageRate
+      : vendor?.wageRate !== undefined && vendor?.wageRate !== null
+        ? [vendor.wageRate]
+        : [];
+
+    const wageRateTypes = Array.isArray(vendor?.wageRateType)
+      ? vendor.wageRateType
+      : vendor?.wageRateType
+        ? [vendor.wageRateType]
+        : [];
+
+    const existingJobs = Array.isArray(vendor?.jobs) ? vendor.jobs : [];
+
+    const jobCount = Math.max(
+      types.length,
+      wageRates.length,
+      wageRateTypes.length,
+      existingJobs.length,
+    );
+
+    const jobs = Array.from({ length: jobCount }, (_, index) => {
+      const oldJob = existingJobs[index] || {};
+
+      return {
+        type: types[index] ?? oldJob.type ?? "",
+
+        wageRate:
+          wageRates[index] !== undefined
+            ? Number(wageRates[index])
+            : oldJob.wageRate !== undefined
+              ? Number(oldJob.wageRate)
+              : 0,
+
+        wageRateType: wageRateTypes[index] ?? oldJob.wageRateType ?? "",
+      };
+    }).filter((job) => job.type || job.wageRate || job.wageRateType);
+
+    return {
+      ...vendor,
+
+      type: types,
+
+      wageRate: wageRates,
+
+      wageRateType: wageRateTypes,
+
+      jobs,
+    };
+  });
+
+  // ============================================================
+  // TYPE DISTRIBUTION
+  // ============================================================
+
+  const typeDistribution = Array.isArray(apiData.typeDistribution)
+    ? apiData.typeDistribution
+        .map((item) => ({
+          ...item,
+
+          type: item?.type ?? item?._id ?? "Other",
+
+          vendorCount: Number(item?.vendorCount ?? item?.count ?? 0),
+        }))
+        .filter((item) => item.type && item.vendorCount > 0)
+    : [];
+
+  // ============================================================
+  // PAGINATION
+  // ============================================================
+
+  const pagination = apiData.pagination || {};
+
+  const totalCount = Number(pagination.total || 0);
+
+  // ============================================================
+  // PERFORMANCE
+  // ============================================================
+
+  const performance = apiData.performance || {};
+
+  // ============================================================
+  // LEAVE STATS
+  // ============================================================
+
+  const leaveStats = apiData.leaveStats || {};
+
+  // ============================================================
+  // TOTALS
+  // ============================================================
+
+  const totals = apiData.totals || {};
+
+  // ============================================================
+  // PINCODE DISTRIBUTION
+  // ============================================================
+
+  // ============================================================
+  // PINCODE DISTRIBUTION
+  // ============================================================
+
+  const rawPincodeDistribution = Array.isArray(apiData?.pincodeDistribution)
+    ? apiData.pincodeDistribution
+    : [];
+
+  const pincodeDistribution = rawPincodeDistribution
+    .map((item, index) => {
+      const pincode =
+        item?.pincode ??
+        item?._id ??
+        item?.pinCode ??
+        item?.postalCode ??
+        item?.code ??
+        "";
+
+      const count = Number(
+        item?.vendorCount ?? item?.count ?? item?.vendors ?? item?.total ?? 0,
+      );
+
+      return {
+        pincode: String(pincode).trim(),
+        vendorCount: Number.isFinite(count) ? count : 0,
+        original: item,
+        index,
+      };
+    })
+    .filter((item) => item.pincode && item.vendorCount > 0)
+    .sort((a, b) => b.vendorCount - a.vendorCount);
+
+  console.log("========== PINCODE DISTRIBUTION ==========");
+
+  console.log("RAW PINCODES:", rawPincodeDistribution);
+
+  console.table(
+    pincodeDistribution.map((item) => ({
+      pincode: item.pincode,
+      vendorCount: item.vendorCount,
+    })),
+  );
+
+  console.log("==========================================");
+
+  // ============================================================
+  // BOOKING TRENDS
+  // ============================================================
+
+  const bookingTrends = Array.isArray(apiData.bookingTrends)
+    ? apiData.bookingTrends
+    : [];
+
+  // ============================================================
+  // GROWTH
+  // ============================================================
+
+  const growth = Array.isArray(apiData.growth) ? apiData.growth : [];
+
+  // Extract vendor detail data
+  const vendorDetail = detailData?.data || null;
+
+  console.log(vendors);
+
+  // Colors for charts
+  const COLORS = [
+    "#3f51b5",
+    "#f50057",
+    "#ff9800",
+    "#4caf50",
+    "#2196f3",
+    "#9c27b0",
+    "#00bcd4",
+    "#8bc34a",
+  ];
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  if (isLoading) return <LoadingSpinner />;
+
   return (
     <>
       <Helmet>
         <title>Vendors | Admin Panel</title>
       </Helmet>
+
+      {/* Header */}
       <Box mb={4}>
         <Box
           display="flex"
@@ -285,7 +503,7 @@ const VendorsPage = () => {
                 Total Vendors
               </Typography>
               <Typography variant={isMobile ? "h6" : "h5"} fontWeight={700}>
-                {formatNumber(data?.data?.totals?.total || 0)}
+                {formatNumber(totals?.total || 0)}
               </Typography>
             </CardContent>
           </Card>
@@ -301,7 +519,7 @@ const VendorsPage = () => {
                 fontWeight={700}
                 color="success.main"
               >
-                {formatNumber(data?.data?.totals?.active || 0)}
+                {formatNumber(totals?.active || 0)}
               </Typography>
             </CardContent>
           </Card>
@@ -332,8 +550,8 @@ const VendorsPage = () => {
         </Grid>
       </Grid>
 
-      {/* Leave Stats Cards */}
-      {Object.keys(leaveStats).length > 0 && (
+      {/* Leave Stats Cards (if available) */}
+      {leaveStats && Object.keys(leaveStats).length > 0 && (
         <Grid container spacing={isMobile ? 1.5 : 3} mb={isMobile ? 2 : 4}>
           <Grid item xs={6} sm={6} md={3}>
             <Card>
@@ -436,14 +654,12 @@ const VendorsPage = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={
-                        Array.isArray(typeDistribution) ? typeDistribution : []
-                      }
+                      data={typeDistribution}
                       cx="50%"
                       cy="50%"
                       outerRadius={85}
-                      dataKey="count"
-                      nameKey="_id"
+                      dataKey="vendorCount"
+                      nameKey="type"
                       labelLine={false}
                     >
                       {(Array.isArray(typeDistribution)
@@ -451,16 +667,15 @@ const VendorsPage = () => {
                         : []
                       ).map((entry, index) => (
                         <Cell
-                          key={`cell-${entry?._id || index}`}
+                          key={`cell-${entry?.type || entry?._id || index}`}
                           fill={COLORS[index % COLORS.length]}
                         />
                       ))}
                     </Pie>
-
                     <RechartsTooltip
                       formatter={(value, name, props) => [
                         value,
-                        props?.payload?._id || "Other",
+                        props?.payload?.type || "Other",
                       ]}
                     />
                   </PieChart>
@@ -492,11 +707,14 @@ const VendorsPage = () => {
               >
                 {(Array.isArray(typeDistribution) ? typeDistribution : []).map(
                   (entry, index) => {
-                    const name = entry?._id || "Other";
-                    const count = Number(entry?.count || 0);
+                    const name = entry?.type || entry?._id || "Other";
+                    const count = Number(
+                      entry?.vendorCount ?? entry?.count ?? 0,
+                    );
 
                     const total = typeDistribution.reduce(
-                      (sum, item) => sum + Number(item?.count || 0),
+                      (sum, item) =>
+                        sum + Number(item?.vendorCount ?? item?.count ?? 0),
                       0,
                     );
 
@@ -516,13 +734,11 @@ const VendorsPage = () => {
                           borderRadius: 1.5,
                           backgroundColor: "action.hover",
                           transition: "background-color 0.2s ease",
-
                           "&:hover": {
                             backgroundColor: "action.selected",
                           },
                         }}
                       >
-                        {/* Label */}
                         <Box
                           sx={{
                             display: "flex",
@@ -541,7 +757,6 @@ const VendorsPage = () => {
                               backgroundColor: COLORS[index % COLORS.length],
                             }}
                           />
-
                           <Typography
                             variant="body2"
                             sx={{
@@ -556,8 +771,6 @@ const VendorsPage = () => {
                             {name}
                           </Typography>
                         </Box>
-
-                        {/* Count + Percentage */}
                         <Box
                           sx={{
                             display: "flex",
@@ -569,7 +782,6 @@ const VendorsPage = () => {
                           <Typography variant="body2" fontWeight={700}>
                             {count}
                           </Typography>
-
                           <Typography variant="caption" color="text.secondary">
                             ({percentage}%)
                           </Typography>
@@ -579,7 +791,6 @@ const VendorsPage = () => {
                   },
                 )}
 
-                {/* Empty State */}
                 {(!Array.isArray(typeDistribution) ||
                   typeDistribution.length === 0) && (
                   <Box
@@ -612,7 +823,6 @@ const VendorsPage = () => {
             </Typography>
 
             <Grid container spacing={2}>
-              {/* Total Earnings */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
@@ -624,14 +834,11 @@ const VendorsPage = () => {
                   <Typography variant={isMobile ? "h6" : "h5"} color="primary">
                     {formatCurrency(performance?.totalEarnings || 0)}
                   </Typography>
-
                   <Typography variant="caption" color="textSecondary">
                     Total Earnings
                   </Typography>
                 </Box>
               </Grid>
-
-              {/* Total Commission */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
@@ -646,14 +853,11 @@ const VendorsPage = () => {
                   >
                     {formatCurrency(performance?.totalCommission || 0)}
                   </Typography>
-
                   <Typography variant="caption" color="textSecondary">
                     Total Commission
                   </Typography>
                 </Box>
               </Grid>
-
-              {/* Total Bookings */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
@@ -668,14 +872,11 @@ const VendorsPage = () => {
                   >
                     {formatNumber(performance?.bookingStats?.total || 0)}
                   </Typography>
-
                   <Typography variant="caption" color="textSecondary">
-                    Total Bookings as User
+                    Total Bookings
                   </Typography>
                 </Box>
               </Grid>
-
-              {/* Total Balance */}
               <Grid item xs={6}>
                 <Box
                   textAlign="center"
@@ -690,7 +891,6 @@ const VendorsPage = () => {
                   >
                     {formatCurrency(performance?.totalBalance || 0)}
                   </Typography>
-
                   <Typography variant="caption" color="textSecondary">
                     Total Balance
                   </Typography>
@@ -710,7 +910,7 @@ const VendorsPage = () => {
               fontWeight={600}
               gutterBottom
             >
-              Booking Stats Breakdown as User
+              Booking Stats Breakdown
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={4}>
@@ -805,44 +1005,6 @@ const VendorsPage = () => {
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid item xs={12}>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" gutterBottom>
-                  Share Stats Related Bookings
-                </Typography>
-                <Grid container spacing={1}>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">
-                      Completed
-                    </Typography>
-                    <Typography variant="body2" color="success.main">
-                      {formatNumber(
-                        performance?.bookingStats?.completedShareBy || 0,
-                      )}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">
-                      Pending
-                    </Typography>
-                    <Typography variant="body2" color="warning.main">
-                      {formatNumber(
-                        performance?.bookingStats?.pendingShareBy || 0,
-                      )}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={4}>
-                    <Typography variant="caption" color="textSecondary">
-                      Canceled
-                    </Typography>
-                    <Typography variant="body2" color="error.main">
-                      {formatNumber(
-                        performance?.bookingStats?.canceledShareBy || 0,
-                      )}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Grid>
             </Grid>
           </Paper>
         </Grid>
@@ -864,23 +1026,77 @@ const VendorsPage = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {pincodeDistribution.slice(0, 5).map((item) => (
-                    <TableRow key={item._id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <LocationIcon fontSize="small" color="action" />
-                          {item._id || "N/A"}
+                  {pincodeDistribution.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <LocationIcon
+                            sx={{
+                              fontSize: 36,
+                              color: "text.disabled",
+                            }}
+                          />
+
+                          <Typography variant="body2" color="text.secondary">
+                            No pincode data available
+                          </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell align="right">
-                        <Chip
-                          label={item.count}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    pincodeDistribution.slice(0, 5).map((item, index) => (
+                      <TableRow key={`${item.pincode}-${index}`} hover>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Box
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                bgcolor:
+                                  index === 0 ? "primary.main" : "action.hover",
+                                color: index === 0 ? "white" : "text.secondary",
+                                fontSize: 12,
+                                fontWeight: 700,
+                              }}
+                            >
+                              {index + 1}
+                            </Box>
+
+                            <LocationIcon fontSize="small" color="action" />
+
+                            <Typography
+                              variant="body2"
+                              fontWeight={index === 0 ? 700 : 500}
+                            >
+                              {item.pincode}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+
+                        <TableCell align="right">
+                          <Chip
+                            label={`${item.vendorCount} vendor${
+                              item.vendorCount === 1 ? "" : "s"
+                            }`}
+                            size="small"
+                            color={index === 0 ? "primary" : "default"}
+                            variant={index === 0 ? "filled" : "outlined"}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -921,11 +1137,13 @@ const VendorsPage = () => {
             <InputLabel>Type</InputLabel>
             <Select value={typeFilter} onChange={handleTypeChange} label="Type">
               <MenuItem value="all">All</MenuItem>
-              <MenuItem value="plumber">Plumber</MenuItem>
-              <MenuItem value="electrician">Electrician</MenuItem>
-              <MenuItem value="carpenter">Carpenter</MenuItem>
-              <MenuItem value="painter">Painter</MenuItem>
-              <MenuItem value="cleaner">Cleaner</MenuItem>
+              {typeDistribution.map((item) => (
+                <MenuItem key={item.type} value={item.type}>
+                  {String(item.type).charAt(0).toUpperCase() +
+                    String(item.type).slice(1)}{" "}
+                  ({item.vendorCount})
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 120 }}>
@@ -1022,11 +1240,40 @@ const VendorsPage = () => {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={vendor.type?.toUpperCase() || "General"}
-                          size="small"
-                          variant="outlined"
-                        />
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 0.5,
+                            maxWidth: 300,
+                          }}
+                        >
+                          {vendor.jobs?.length > 0 ? (
+                            vendor.jobs.map((job, index) => (
+                              <Tooltip
+                                key={`${vendor._id}-job-${index}`}
+                                title={
+                                  job.wageRate !== undefined &&
+                                  job.wageRate !== null
+                                    ? `₹${Number(job.wageRate).toLocaleString("en-IN")}${job.wageRateType ? ` / ${job.wageRateType}` : ""}`
+                                    : job.type || "General"
+                                }
+                              >
+                                <Chip
+                                  label={job.type || "General"}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              </Tooltip>
+                            ))
+                          ) : (
+                            <Chip
+                              label="General"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
@@ -1160,7 +1407,7 @@ const VendorsPage = () => {
       {/* Vendor Detail Dialog */}
       <Dialog
         open={viewDialogOpen}
-        onClose={() => setViewDialogOpen(false)}
+        onClose={handleCloseDialog}
         maxWidth="md"
         fullWidth
       >
@@ -1168,14 +1415,12 @@ const VendorsPage = () => {
           <Box display="flex" alignItems="center" gap={2}>
             <StoreIcon color="primary" />
             <Typography variant="h6">Vendor Details</Typography>
-            {vendorDetail?.data?.vendor && (
+            {vendorDetail?.vendor && (
               <Chip
-                label={vendorDetail.data.vendor.status || "Active"}
+                label={vendorDetail.vendor.status || "Active"}
                 size="small"
                 color={
-                  vendorDetail.data.vendor.status === "active"
-                    ? "success"
-                    : "error"
+                  vendorDetail.vendor.status === "active" ? "success" : "error"
                 }
                 sx={{ ml: "auto" }}
               />
@@ -1185,7 +1430,11 @@ const VendorsPage = () => {
         <DialogContent>
           {detailLoading ? (
             <LoadingSpinner />
-          ) : vendorDetail?.data ? (
+          ) : detailError ? (
+            <Typography color="error" align="center" sx={{ py: 4 }}>
+              Failed to load vendor details. Please try again.
+            </Typography>
+          ) : vendorDetail ? (
             <Box>
               {/* Vendor Info */}
               <Grid container spacing={2} mb={3}>
@@ -1194,39 +1443,135 @@ const VendorsPage = () => {
                     <Avatar
                       sx={{ width: 56, height: 56, bgcolor: "secondary.main" }}
                     >
-                      {vendorDetail.data.vendor?.name
-                        ?.charAt(0)
-                        .toUpperCase() || "V"}
+                      {vendorDetail.vendor?.name?.charAt(0).toUpperCase() ||
+                        "V"}
                     </Avatar>
                     <Box>
                       <Typography variant="h6">
-                        {vendorDetail.data.vendor?.name?.toUpperCase()}
+                        {vendorDetail.vendor?.name?.toUpperCase()}
                       </Typography>
                       <Typography variant="body2" color="textSecondary">
-                        {vendorDetail.data.vendor?.phoneNo || "No phone"}
+                        {vendorDetail.vendor?.phoneNo || "No phone"}
                       </Typography>
                       <Box display="flex" gap={1} mt={0.5} flexWrap="wrap">
-                        <Chip
-                          label={
-                            vendorDetail.data.vendor?.type?.toUpperCase() ||
-                            "General"
-                          }
-                          size="small"
-                          variant="outlined"
-                        />
-                        {vendorDetail.data.vendor?.isVerified && (
+                        {(Array.isArray(vendorDetail.vendor?.jobs)
+                          ? vendorDetail.vendor.jobs
+                          : (Array.isArray(vendorDetail.vendor?.type)
+                              ? vendorDetail.vendor.type
+                              : vendorDetail.vendor?.type
+                                ? [vendorDetail.vendor.type]
+                                : []
+                            ).map((jobType, index) => ({
+                              type: jobType,
+                              wageRate: vendorDetail.vendor?.wageRate?.[index],
+                              wageRateType:
+                                vendorDetail.vendor?.wageRateType?.[index],
+                            }))
+                        ).map((job, index) => (
+                          <Chip
+                            key={`detail-job-${index}`}
+                            size="small"
+                            variant="outlined"
+                            label={
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 0.6,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Typography
+                                  component="span"
+                                  sx={{
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                    textTransform: "uppercase",
+                                  }}
+                                >
+                                  {job.type || "General"}
+                                </Typography>
+
+                                {job.wageRate !== undefined &&
+                                  job.wageRate !== null && (
+                                    <>
+                                      <Typography
+                                        component="span"
+                                        sx={{
+                                          fontSize: 11,
+                                          fontWeight: 700,
+                                          color: "success.main",
+                                        }}
+                                      >
+                                        • ₹
+                                        {Number(job.wageRate).toLocaleString(
+                                          "en-IN",
+                                        )}
+                                      </Typography>
+
+                                      {job.wageRateType && (
+                                        <Typography
+                                          component="span"
+                                          sx={{
+                                            fontSize: 10,
+                                            color: "text.secondary",
+                                          }}
+                                        >
+                                          / {job.wageRateType}
+                                        </Typography>
+                                      )}
+                                    </>
+                                  )}
+                              </Box>
+                            }
+                            title={
+                              job.wageRate !== undefined &&
+                              job.wageRate !== null
+                                ? `₹${Number(job.wageRate).toLocaleString(
+                                    "en-IN",
+                                  )}${
+                                    job.wageRateType
+                                      ? ` / ${job.wageRateType}`
+                                      : ""
+                                  }`
+                                : ""
+                            }
+                            sx={{
+                              height: 32,
+                              borderRadius: "9px",
+                              whiteSpace: "nowrap",
+                              maxWidth: "100%",
+                              borderColor: "rgba(63,81,181,0.2)",
+                              backgroundColor: "rgba(63,81,181,0.05)",
+
+                              "& .MuiChip-label": {
+                                display: "block",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                px: 1.2,
+                              },
+
+                              "&:hover": {
+                                borderColor: "primary.main",
+                                backgroundColor: "rgba(63,81,181,0.1)",
+                              },
+                            }}
+                          />
+                        ))}
+                        {vendorDetail.vendor?.isVerified && (
                           <Chip label="Verified" size="small" color="success" />
                         )}
                         <Chip
                           icon={<StarIcon />}
-                          label={`${vendorDetail.data.vendor?.rating?.toFixed(1) || 0} ★ (${vendorDetail.data.vendor?.ratingCount || 0} reviews)`}
+                          label={`${vendorDetail.vendor?.rating?.toFixed(1) || 0} ★ (${vendorDetail.vendor?.ratingCount || 0} reviews)`}
                           size="small"
                           variant="outlined"
                         />
-                        {vendorDetail.data.vendor?.pincode && (
+                        {vendorDetail.vendor?.pincode && (
                           <Chip
                             icon={<LocationIcon />}
-                            label={`Pincode: ${vendorDetail.data.vendor.pincode}`}
+                            label={`Pincode: ${vendorDetail.vendor.pincode}`}
                             size="small"
                             variant="outlined"
                           />
@@ -1236,6 +1581,67 @@ const VendorsPage = () => {
                   </Box>
                 </Grid>
               </Grid>
+
+              {/* Complete service and wage-rate information
+              {(vendorDetail.vendor?.jobs?.length > 0 ||
+                (Array.isArray(vendorDetail.vendor?.type) &&
+                  vendorDetail.vendor.type.length > 0)) && (
+                <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                    Services & Wage Rates
+                  </Typography>
+                  <Grid container spacing={1}>
+                    {(Array.isArray(vendorDetail.vendor?.jobs)
+                      ? vendorDetail.vendor.jobs
+                      : vendorDetail.vendor.type.map((jobType, index) => ({
+                          type: jobType,
+                          wageRate: vendorDetail.vendor?.wageRate?.[index],
+                          wageRateType:
+                            vendorDetail.vendor?.wageRateType?.[index],
+                        }))
+                    ).map((job, index) => (
+                      <Grid item xs={12} sm={6} key={`detail-rate-${index}`}>
+                        <Box
+                          sx={{
+                            p: 1.25,
+                            borderRadius: 1.5,
+                            bgcolor: "action.hover",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          <Box sx={{ minWidth: 0 }}>
+                            <Typography
+                              variant="body2"
+                              fontWeight={700}
+                              sx={{ textTransform: "capitalize" }}
+                            >
+                              {job.type || "General"}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {job.wageRateType || "Rate"}
+                            </Typography>
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color="primary"
+                          >
+                            {job.wageRate !== undefined && job.wageRate !== null
+                              ? `₹${Number(job.wageRate).toLocaleString("en-IN")}`
+                              : "—"}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Paper>
+              )} */}
 
               <Tabs
                 value={detailTab}
@@ -1264,7 +1670,7 @@ const VendorsPage = () => {
                           Total Bookings
                         </Typography>
                         <Typography variant="h6">
-                          {formatNumber(vendorDetail.data.bookings?.total || 0)}
+                          {formatNumber(vendorDetail.bookings?.total || 0)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -1276,9 +1682,7 @@ const VendorsPage = () => {
                           Completed
                         </Typography>
                         <Typography variant="h6" color="success.main">
-                          {formatNumber(
-                            vendorDetail.data.bookings?.completed || 0,
-                          )}
+                          {formatNumber(vendorDetail.bookings?.completed || 0)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -1290,9 +1694,7 @@ const VendorsPage = () => {
                           Active
                         </Typography>
                         <Typography variant="h6" color="warning.main">
-                          {formatNumber(
-                            vendorDetail.data.bookings?.active || 0,
-                          )}
+                          {formatNumber(vendorDetail.bookings?.active || 0)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -1304,9 +1706,7 @@ const VendorsPage = () => {
                           Cancelled
                         </Typography>
                         <Typography variant="h6" color="error.main">
-                          {formatNumber(
-                            vendorDetail.data.bookings?.cancelled || 0,
-                          )}
+                          {formatNumber(vendorDetail.bookings?.cancelled || 0)}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -1319,12 +1719,12 @@ const VendorsPage = () => {
                         </Typography>
                         <Typography variant="h5">
                           {formatCurrency(
-                            vendorDetail.data.revenue?.totalRevenue || 0,
+                            vendorDetail.revenue?.totalRevenue || 0,
                           )}
                         </Typography>
                         <Typography variant="caption" color="textSecondary">
                           {formatNumber(
-                            vendorDetail.data.revenue?.transactionCount || 0,
+                            vendorDetail.revenue?.transactionCount || 0,
                           )}{" "}
                           transactions
                         </Typography>
@@ -1341,9 +1741,7 @@ const VendorsPage = () => {
                   </Typography>
                   <Box sx={{ height: 250 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={vendorDetail.data.bookings?.timeline || []}
-                      >
+                      <BarChart data={vendorDetail.bookings?.timeline || []}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="_id" />
                         <YAxis />
@@ -1376,9 +1774,7 @@ const VendorsPage = () => {
                             By User
                           </Typography>
                           <Typography variant="h6">
-                            {formatNumber(
-                              vendorDetail.data.bookings?.byUser || 0,
-                            )}
+                            {formatNumber(vendorDetail.bookings?.byUser || 0)}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1390,9 +1786,7 @@ const VendorsPage = () => {
                             By Vendor
                           </Typography>
                           <Typography variant="h6">
-                            {formatNumber(
-                              vendorDetail.data.bookings?.byVendor || 0,
-                            )}
+                            {formatNumber(vendorDetail.bookings?.byVendor || 0)}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1404,8 +1798,7 @@ const VendorsPage = () => {
                             Rating
                           </Typography>
                           <Typography variant="h6">
-                            {vendorDetail.data.vendor?.rating?.toFixed(1) || 0}{" "}
-                            ★
+                            {vendorDetail.vendor?.rating?.toFixed(1) || 0} ★
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1428,7 +1821,7 @@ const VendorsPage = () => {
                           </Typography>
                           <Typography variant="h6">
                             {formatCurrency(
-                              vendorDetail.data.revenue?.totalRevenue || 0,
+                              vendorDetail.revenue?.totalRevenue || 0,
                             )}
                           </Typography>
                         </CardContent>
@@ -1442,7 +1835,7 @@ const VendorsPage = () => {
                           </Typography>
                           <Typography variant="h6">
                             {formatCurrency(
-                              vendorDetail.data.revenue?.avgOrderValue || 0,
+                              vendorDetail.revenue?.avgOrderValue || 0,
                             )}
                           </Typography>
                         </CardContent>
@@ -1456,7 +1849,7 @@ const VendorsPage = () => {
                           </Typography>
                           <Typography variant="h6">
                             {formatCurrency(
-                              vendorDetail.data.revenue?.totalDiscounts || 0,
+                              vendorDetail.revenue?.totalDiscounts || 0,
                             )}
                           </Typography>
                         </CardContent>
@@ -1469,13 +1862,10 @@ const VendorsPage = () => {
                             Referrals
                           </Typography>
                           <Typography variant="h6">
-                            {formatNumber(
-                              vendorDetail.data.referrals?.total || 0,
-                            )}
+                            {formatNumber(vendorDetail.referrals?.total || 0)}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
-                            {vendorDetail.data.referrals?.completed || 0}{" "}
-                            completed
+                            {vendorDetail.referrals?.completed || 0} completed
                           </Typography>
                         </CardContent>
                       </Card>
@@ -1506,7 +1896,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.bookingCount || 0,
                               )}
                             </Typography>
@@ -1517,8 +1907,8 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="success.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
-                                  ?.completed || 0,
+                                vendorDetail.vendor?.bookingStats?.completed ||
+                                  0,
                               )}
                             </Typography>
                           </Grid>
@@ -1528,8 +1918,8 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="error.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
-                                  ?.canceled || 0,
+                                vendorDetail.vendor?.bookingStats?.canceled ||
+                                  0,
                               )}
                             </Typography>
                           </Grid>
@@ -1552,7 +1942,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.bookingCountVendor || 0,
                               )}
                             </Typography>
@@ -1563,7 +1953,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="success.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.completedVendor || 0,
                               )}
                             </Typography>
@@ -1574,7 +1964,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="error.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.canceledVendor || 0,
                               )}
                             </Typography>
@@ -1598,7 +1988,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatNumber(
-                                vendorDetail.data.vendor?.shareCount || 0,
+                                vendorDetail.vendor?.shareCount || 0,
                               )}
                             </Typography>
                           </Grid>
@@ -1608,7 +1998,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="success.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.completedShareBy || 0,
                               )}
                             </Typography>
@@ -1619,7 +2009,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1" color="error.main">
                               {formatNumber(
-                                vendorDetail.data.vendor?.bookingStats
+                                vendorDetail.vendor?.bookingStats
                                   ?.canceledShareBy || 0,
                               )}
                             </Typography>
@@ -1639,7 +2029,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatCurrency(
-                                vendorDetail.data.vendor?.earning || 0,
+                                vendorDetail.vendor?.earning || 0,
                               )}
                             </Typography>
                           </Grid>
@@ -1649,7 +2039,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatCurrency(
-                                vendorDetail.data.vendor?.commission || 0,
+                                vendorDetail.vendor?.commission || 0,
                               )}
                             </Typography>
                           </Grid>
@@ -1659,7 +2049,7 @@ const VendorsPage = () => {
                             </Typography>
                             <Typography variant="body1">
                               {formatCurrency(
-                                vendorDetail.data.vendor?.balance || 0,
+                                vendorDetail.vendor?.balance || 0,
                               )}
                             </Typography>
                           </Grid>
@@ -1682,9 +2072,9 @@ const VendorsPage = () => {
                     <Typography variant="subtitle2" gutterBottom>
                       Leave Information
                     </Typography>
-                    {vendorDetail.data.leaves?.data?.length > 0 && (
+                    {vendorDetail.leaves?.data?.length > 0 && (
                       <Chip
-                        label={`${vendorDetail.data.leaves.data.length} total`}
+                        label={`${vendorDetail.leaves.data.length} total`}
                         size="small"
                         color="primary"
                         variant="outlined"
@@ -1692,8 +2082,7 @@ const VendorsPage = () => {
                     )}
                   </Box>
 
-                  {/* Leave Stats Cards */}
-                  {vendorDetail.data.leaves?.stats && (
+                  {vendorDetail.leaves?.stats && (
                     <Grid container spacing={1} sx={{ mb: 2 }}>
                       <Grid item xs={3}>
                         <Paper
@@ -1703,7 +2092,7 @@ const VendorsPage = () => {
                             Total
                           </Typography>
                           <Typography variant="h6" fontWeight={700}>
-                            {vendorDetail.data.leaves.stats.total || 0}
+                            {vendorDetail.leaves.stats.total || 0}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1719,7 +2108,7 @@ const VendorsPage = () => {
                             fontWeight={700}
                             color="success.main"
                           >
-                            {vendorDetail.data.leaves.stats.active || 0}
+                            {vendorDetail.leaves.stats.active || 0}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1735,7 +2124,7 @@ const VendorsPage = () => {
                             fontWeight={700}
                             color="error.main"
                           >
-                            {vendorDetail.data.leaves.stats.currentActive || 0}
+                            {vendorDetail.leaves.stats.currentActive || 0}
                           </Typography>
                         </Paper>
                       </Grid>
@@ -1751,14 +2140,14 @@ const VendorsPage = () => {
                             fontWeight={700}
                             color="warning.main"
                           >
-                            {vendorDetail.data.leaves?.upcoming?.length || 0}
+                            {vendorDetail.leaves?.upcoming?.length || 0}
                           </Typography>
                         </Paper>
                       </Grid>
                     </Grid>
                   )}
 
-                  {vendorDetail.data.leaves?.data?.length > 0 ? (
+                  {vendorDetail.leaves?.data?.length > 0 ? (
                     <>
                       <TableContainer sx={{ maxHeight: 300 }}>
                         <Table size="small" stickyHeader>
@@ -1780,119 +2169,107 @@ const VendorsPage = () => {
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {vendorDetail.data.leaves.data.map(
-                              (leave, index) => {
-                                const now = new Date();
-                                const from = new Date(leave.from);
-                                const to = new Date(leave.to);
-                                const isCurrent =
-                                  leave.status === "active" &&
-                                  from <= now &&
-                                  to >= now;
-                                const isUpcoming =
-                                  leave.status === "active" && from > now;
-                                const isPast =
-                                  leave.status === "active" && to < now;
+                            {vendorDetail.leaves.data.map((leave, index) => {
+                              const now = new Date();
+                              const from = new Date(leave.from);
+                              const to = new Date(leave.to);
+                              const isCurrent =
+                                leave.status === "active" &&
+                                from <= now &&
+                                to >= now;
+                              const isUpcoming =
+                                leave.status === "active" && from > now;
+                              const isPast =
+                                leave.status === "active" && to < now;
 
-                                // Calculate duration in days
-                                const durationDays =
-                                  Math.ceil(
-                                    (to - from) / (1000 * 60 * 60 * 24),
-                                  ) + 1;
+                              const durationDays =
+                                Math.ceil((to - from) / (1000 * 60 * 60 * 24)) +
+                                1;
 
-                                let statusLabel = leave.status;
-                                let chipColor = "default";
+                              let statusLabel = leave.status;
+                              let chipColor = "default";
 
-                                if (isCurrent) {
-                                  statusLabel = "● Current";
-                                  chipColor = "error";
-                                } else if (isUpcoming) {
-                                  statusLabel = "⏳ Upcoming";
-                                  chipColor = "warning";
-                                } else if (
-                                  isPast &&
-                                  leave.status === "active"
-                                ) {
-                                  statusLabel = "✓ Expired";
-                                  chipColor = "default";
-                                } else if (leave.status === "cancelled") {
-                                  statusLabel = "✕ Cancelled";
-                                  chipColor = "default";
-                                }
+                              if (isCurrent) {
+                                statusLabel = "● Current";
+                                chipColor = "error";
+                              } else if (isUpcoming) {
+                                statusLabel = "⏳ Upcoming";
+                                chipColor = "warning";
+                              } else if (isPast && leave.status === "active") {
+                                statusLabel = "✓ Expired";
+                                chipColor = "default";
+                              } else if (leave.status === "cancelled") {
+                                statusLabel = "✕ Cancelled";
+                                chipColor = "default";
+                              }
 
-                                return (
-                                  <TableRow
-                                    key={index}
-                                    hover
-                                    sx={{
+                              return (
+                                <TableRow
+                                  key={index}
+                                  hover
+                                  sx={{
+                                    backgroundColor: isCurrent
+                                      ? "#fff3e0"
+                                      : isUpcoming
+                                        ? "#e3f2fd"
+                                        : "inherit",
+                                    "&:hover": {
                                       backgroundColor: isCurrent
-                                        ? "#fff3e0"
+                                        ? "#ffe0b2"
                                         : isUpcoming
-                                          ? "#e3f2fd"
-                                          : "inherit",
-                                      "&:hover": {
-                                        backgroundColor: isCurrent
-                                          ? "#ffe0b2"
-                                          : isUpcoming
-                                            ? "#bbdefb"
-                                            : "action.hover",
-                                      },
-                                    }}
-                                  >
-                                    <TableCell>
-                                      {formatDate(leave.from)}
-                                    </TableCell>
-                                    <TableCell>
-                                      {formatDate(leave.to)}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Chip
-                                        label={`${durationDays} day${
-                                          durationDays > 1 ? "s" : ""
-                                        }`}
-                                        size="small"
-                                        variant="outlined"
-                                        sx={{ fontSize: "0.65rem" }}
-                                      />
-                                    </TableCell>
-                                    <TableCell>
-                                      <Tooltip
-                                        title={
-                                          leave.reason || "No reason provided"
-                                        }
+                                          ? "#bbdefb"
+                                          : "action.hover",
+                                    },
+                                  }}
+                                >
+                                  <TableCell>
+                                    {formatDate(leave.from)}
+                                  </TableCell>
+                                  <TableCell>{formatDate(leave.to)}</TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      label={`${durationDays} day${durationDays > 1 ? "s" : ""}`}
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{ fontSize: "0.65rem" }}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Tooltip
+                                      title={
+                                        leave.reason || "No reason provided"
+                                      }
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        noWrap
+                                        sx={{ maxWidth: 120 }}
                                       >
-                                        <Typography
-                                          variant="body2"
-                                          noWrap
-                                          sx={{ maxWidth: 120 }}
-                                        >
-                                          {leave.reason || "N/A"}
-                                        </Typography>
-                                      </Tooltip>
-                                    </TableCell>
-                                    <TableCell>
-                                      <Chip
-                                        label={statusLabel}
-                                        size="small"
-                                        color={chipColor}
-                                        sx={{
-                                          fontWeight:
-                                            isCurrent || isUpcoming ? 600 : 400,
-                                          "& .MuiChip-label": {
-                                            fontSize: "0.7rem",
-                                          },
-                                        }}
-                                      />
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              },
-                            )}
+                                        {leave.reason || "N/A"}
+                                      </Typography>
+                                    </Tooltip>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Chip
+                                      label={statusLabel}
+                                      size="small"
+                                      color={chipColor}
+                                      sx={{
+                                        fontWeight:
+                                          isCurrent || isUpcoming ? 600 : 400,
+                                        "& .MuiChip-label": {
+                                          fontSize: "0.7rem",
+                                        },
+                                      }}
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </TableContainer>
 
-                      {/* Leave Summary */}
                       <Box
                         sx={{
                           mt: 2,
@@ -1972,11 +2349,13 @@ const VendorsPage = () => {
               )}
             </Box>
           ) : (
-            <Typography color="error">Failed to load vendor details</Typography>
+            <Typography color="error" align="center" sx={{ py: 4 }}>
+              No vendor data available
+            </Typography>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          <Button onClick={handleCloseDialog}>Close</Button>
         </DialogActions>
       </Dialog>
     </>

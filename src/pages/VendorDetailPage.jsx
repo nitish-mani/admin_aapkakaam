@@ -38,6 +38,7 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
+  Icon,
 } from "@mui/material";
 import {
   Store as StoreIcon,
@@ -61,6 +62,8 @@ import {
   Close as CloseIcon,
   Warning as WarningIcon,
   EventBusy as EventBusyIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon,
 } from "@mui/icons-material";
 import { useQuery, useMutation, useQueryClient } from "react-query";
 import { adminService } from "../services/adminService";
@@ -203,13 +206,86 @@ const VendorDetailPage = () => {
   };
 
   const handleEdit = () => {
-    setEditForm(data?.data?.vendor || {});
+    const vendor = data?.data?.vendor || {};
+    setEditForm({
+      name: vendor.name || "",
+      email: vendor.email || "",
+      type: vendor.type || [],
+      gender: vendor.gender || "",
+      pincode: vendor.pincode || "",
+      balance: vendor.balance || 0,
+      status: vendor.status || "active",
+      isVerified: vendor.isVerified || false,
+      wageRate: vendor.wageRate || [],
+      wageRateType: vendor.wageRateType || [],
+      experience: vendor.experience || 0,
+      commission: vendor.commission || 50,
+      password: "",
+    });
     setEditDialogOpen(true);
+  };
+
+  // Helper to add a new wage rate entry
+  const addWageRateEntry = () => {
+    const currentTypes = editForm.type || [];
+    const currentRates = editForm.wageRate || [];
+    const currentRateTypes = editForm.wageRateType || [];
+
+    // Only add if there's room (max 5 jobs)
+    if (currentTypes.length < 5) {
+      setEditForm({
+        ...editForm,
+        type: [...currentTypes, ""],
+        wageRate: [...currentRates, 0],
+        wageRateType: [...currentRateTypes, "Day"],
+      });
+    }
+  };
+
+  // Helper to remove a wage rate entry
+  const removeWageRateEntry = (index) => {
+    const currentTypes = editForm.type || [];
+    const currentRates = editForm.wageRate || [];
+    const currentRateTypes = editForm.wageRateType || [];
+
+    if (currentTypes.length > 1) {
+      setEditForm({
+        ...editForm,
+        type: currentTypes.filter((_, i) => i !== index),
+        wageRate: currentRates.filter((_, i) => i !== index),
+        wageRateType: currentRateTypes.filter((_, i) => i !== index),
+      });
+    } else {
+      toast.warning("Vendor must have at least one job");
+    }
+  };
+
+  // Helper to update a specific wage rate entry
+  const updateWageRateEntry = (index, field, value) => {
+    const currentTypes = [...(editForm.type || [])];
+    const currentRates = [...(editForm.wageRate || [])];
+    const currentRateTypes = [...(editForm.wageRateType || [])];
+
+    if (field === "type") {
+      currentTypes[index] = value;
+    } else if (field === "wageRate") {
+      currentRates[index] = parseFloat(value) || 0;
+    } else if (field === "wageRateType") {
+      currentRateTypes[index] = value;
+    }
+
+    setEditForm({
+      ...editForm,
+      type: currentTypes,
+      wageRate: currentRates,
+      wageRateType: currentRateTypes,
+    });
   };
 
   const handleSaveEdit = () => {
     const updateData = {};
     const vendor = data?.data?.vendor;
+
     const fields = [
       "name",
       "email",
@@ -220,21 +296,31 @@ const VendorDetailPage = () => {
       "status",
       "isVerified",
       "wageRate",
+      "wageRateType",
       "experience",
       "commission",
     ];
+
     fields.forEach((field) => {
-      if (editForm[field] !== vendor[field]) {
+      // Compare arrays properly
+      if (Array.isArray(editForm[field]) && Array.isArray(vendor[field])) {
+        if (JSON.stringify(editForm[field]) !== JSON.stringify(vendor[field])) {
+          updateData[field] = editForm[field];
+        }
+      } else if (editForm[field] !== vendor[field]) {
         updateData[field] = editForm[field];
       }
     });
-    if (editForm.password) {
-      updateData.password = editForm.password;
+
+    if (editForm.password && editForm.password.trim()) {
+      updateData.password = editForm.password.trim();
     }
+
     if (Object.keys(updateData).length === 0) {
       toast.info("No changes to save");
       return;
     }
+
     updateMutation.mutate({
       phoneNo: phoneNo,
       data: updateData,
@@ -302,6 +388,40 @@ const VendorDetailPage = () => {
 
   const isBlocked = vendor?.status === "blocked";
 
+  // Helper to display wage rate entries
+  const renderWageEntries = () => {
+    const types = vendor?.type || [];
+    const rates = vendor?.wageRate || [];
+    const rateTypes = vendor?.wageRateType || [];
+
+    if (types.length === 0) {
+      return <Typography color="textSecondary">No jobs configured</Typography>;
+    }
+
+    return types.map((job, index) => (
+      <Box
+        key={index}
+        sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}
+      >
+        <Chip
+          label={job.toUpperCase()}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />
+        <Typography variant="body2" fontWeight={500}>
+          ₹{rates[index] || 0}
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          / {rateTypes[index] || "Day"}
+        </Typography>
+        {index < types.length - 1 && (
+          <Divider orientation="vertical" flexItem />
+        )}
+      </Box>
+    ));
+  };
+
   // Get leave details for delete confirmation
   const getLeaveDetails = (leaveId) => {
     return leaves.find((l) => l._id === leaveId);
@@ -364,11 +484,13 @@ const VendorDetailPage = () => {
                     color: "white",
                   }}
                 />
-                <Chip
-                  label={vendor?.type?.toUpperCase() || "General"}
-                  size="small"
-                  variant="outlined"
-                />
+                {vendor?.type && vendor.type.length > 0 && (
+                  <Chip
+                    label={`${vendor.type.length} Jobs`}
+                    size="small"
+                    variant="outlined"
+                  />
+                )}
                 {vendor?.isVerified && (
                   <Chip label="Verified" size="small" color="success" />
                 )}
@@ -422,6 +544,23 @@ const VendorDetailPage = () => {
             )}
           </Box>
         </Box>
+
+        {/* Wage Rate Summary */}
+        {vendor?.type && vendor.type.length > 0 && (
+          <Box mt={2} pt={2} borderTop="1px solid" borderColor="divider">
+            <Typography
+              variant="caption"
+              color="textSecondary"
+              display="block"
+              gutterBottom
+            >
+              Wage Rates
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={1} alignItems="center">
+              {renderWageEntries()}
+            </Box>
+          </Box>
+        )}
       </Paper>
 
       {/* Stats Cards */}
@@ -883,137 +1022,306 @@ const VendorDetailPage = () => {
         </Box>
       </Paper>
 
-      {/* Edit Dialog */}
+      {/* Edit Dialog - Updated for array fields */}
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
-        <DialogTitle>Edit Vendor</DialogTitle>
+        <DialogTitle>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography variant="h6" fontWeight={600}>
+              Edit Vendor
+            </Typography>
+            <Chip
+              label={`${(editForm.type || []).length}/5 Jobs`}
+              size="small"
+              color={(editForm.type || []).length >= 5 ? "warning" : "primary"}
+            />
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-            <TextField
-              label="Name"
-              value={editForm.name || ""}
-              onChange={(e) =>
-                setEditForm({ ...editForm, name: e.target.value })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Email"
-              value={editForm.email || ""}
-              onChange={(e) =>
-                setEditForm({ ...editForm, email: e.target.value })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Type"
-              value={editForm.type || ""}
-              onChange={(e) =>
-                setEditForm({ ...editForm, type: e.target.value })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Gender"
-              value={editForm.gender || ""}
-              onChange={(e) =>
-                setEditForm({ ...editForm, gender: e.target.value })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Pincode"
-              value={editForm.pincode || ""}
-              onChange={(e) =>
-                setEditForm({ ...editForm, pincode: e.target.value })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Balance"
-              type="number"
-              value={editForm.balance || 0}
-              onChange={(e) =>
-                setEditForm({
-                  ...editForm,
-                  balance: parseFloat(e.target.value) || 0,
-                })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Wage Rate"
-              type="number"
-              value={editForm.wageRate || 0}
-              onChange={(e) =>
-                setEditForm({
-                  ...editForm,
-                  wageRate: parseFloat(e.target.value) || 0,
-                })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Experience (years)"
-              type="number"
-              value={editForm.experience || 0}
-              onChange={(e) =>
-                setEditForm({
-                  ...editForm,
-                  experience: parseInt(e.target.value) || 0,
-                })
-              }
-              fullWidth
-              size="small"
-            />
-            <TextField
-              label="Commission"
-              type="number"
-              value={editForm.commission || 0}
-              onChange={(e) =>
-                setEditForm({
-                  ...editForm,
-                  commission: parseFloat(e.target.value) || 0,
-                })
-              }
-              fullWidth
-              size="small"
-            />
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={editForm.status || "active"}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, status: e.target.value })
-                }
-                label="Status"
-              >
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="blocked">Blocked</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={editForm.isVerified || false}
+            {/* Basic Info */}
+            <Typography
+              variant="subtitle2"
+              color="textSecondary"
+              fontWeight={600}
+            >
+              Basic Information
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Name"
+                  value={editForm.name || ""}
                   onChange={(e) =>
-                    setEditForm({ ...editForm, isVerified: e.target.checked })
+                    setEditForm({ ...editForm, name: e.target.value })
                   }
+                  fullWidth
+                  size="small"
                 />
-              }
-              label="Verified"
-            />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Email"
+                  value={editForm.email || ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, email: e.target.value })
+                  }
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Gender"
+                  value={editForm.gender || ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, gender: e.target.value })
+                  }
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  label="Pincode"
+                  value={editForm.pincode || ""}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, pincode: e.target.value })
+                  }
+                  fullWidth
+                  size="small"
+                />
+              </Grid>
+            </Grid>
+
+            <Divider />
+
+            {/* Wage Rate Entries */}
+            <Box>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Typography
+                  variant="subtitle2"
+                  color="textSecondary"
+                  fontWeight={600}
+                >
+                  Jobs & Wage Rates
+                </Typography>
+                <Button
+                  size="small"
+                  startIcon={<AddIcon />}
+                  onClick={addWageRateEntry}
+                  disabled={(editForm.type || []).length >= 5}
+                  variant="outlined"
+                >
+                  Add Job
+                </Button>
+              </Box>
+
+              {(editForm.type || []).map((job, index) => (
+                <Box
+                  key={index}
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: "background.default",
+                    borderRadius: 1,
+                  }}
+                >
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mb={1}
+                  >
+                    <Typography variant="caption" color="textSecondary">
+                      Job #{index + 1}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => removeWageRateEntry(index)}
+                      disabled={(editForm.type || []).length <= 1}
+                    >
+                      <RemoveIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Job Type"
+                        value={job}
+                        onChange={(e) =>
+                          updateWageRateEntry(index, "type", e.target.value)
+                        }
+                        fullWidth
+                        size="small"
+                        placeholder="e.g. electrician"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Wage Rate (₹)"
+                        type="number"
+                        value={editForm.wageRate?.[index] || 0}
+                        onChange={(e) =>
+                          updateWageRateEntry(index, "wageRate", e.target.value)
+                        }
+                        fullWidth
+                        size="small"
+                        InputProps={{ inputProps: { min: 0 } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Rate Type</InputLabel>
+                        <Select
+                          value={editForm.wageRateType?.[index] || "Day"}
+                          onChange={(e) =>
+                            updateWageRateEntry(
+                              index,
+                              "wageRateType",
+                              e.target.value,
+                            )
+                          }
+                          label="Rate Type"
+                        >
+                          <MenuItem value="Day">Per Day</MenuItem>
+                          <MenuItem value="Hour">Per Hour</MenuItem>
+                          <MenuItem value="Km">Per Km</MenuItem>
+                          <MenuItem value="1k People">Per 1k People</MenuItem>
+                          <MenuItem value="Service">Per Service</MenuItem>
+                          <MenuItem value="Other">Other</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                  </Grid>
+                </Box>
+              ))}
+
+              {(editForm.type || []).length === 0 && (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  No jobs added. Click "Add Job" to add a job with wage rate.
+                </Alert>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Financial Info */}
+            <Typography
+              variant="subtitle2"
+              color="textSecondary"
+              fontWeight={600}
+            >
+              Financial Information
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Balance"
+                  type="number"
+                  value={editForm.balance || 0}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      balance: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  fullWidth
+                  size="small"
+                  InputProps={{ inputProps: { min: 0 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Experience (years)"
+                  type="number"
+                  value={editForm.experience || 0}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      experience: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  fullWidth
+                  size="small"
+                  InputProps={{ inputProps: { min: 0 } }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  label="Commission"
+                  type="number"
+                  value={editForm.commission || 50}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      commission: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  fullWidth
+                  size="small"
+                  InputProps={{ inputProps: { min: 0 } }}
+                />
+              </Grid>
+            </Grid>
+
+            <Divider />
+
+            {/* Account Settings */}
+            <Typography
+              variant="subtitle2"
+              color="textSecondary"
+              fontWeight={600}
+            >
+              Account Settings
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={editForm.status || "active"}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, status: e.target.value })
+                    }
+                    label="Status"
+                  >
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="blocked">Blocked</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editForm.isVerified || false}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          isVerified: e.target.checked,
+                        })
+                      }
+                    />
+                  }
+                  label="Verified"
+                />
+              </Grid>
+            </Grid>
+
             <TextField
               label="New Password (optional)"
               type="password"

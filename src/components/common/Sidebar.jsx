@@ -26,6 +26,8 @@ import {
   PersonSearch as PersonSearchIcon,
   Storefront as StorefrontIcon,
   Message as MessageIcon,
+  SystemUpdate as SystemUpdateIcon,
+  MonitorHeart as MonitorHeartIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
@@ -75,6 +77,13 @@ const menuItems = [
   { path: "/revenue", icon: TrendingUpIcon, label: "Revenue" },
   { path: "/referrals", icon: ShareIcon, label: "Referrals" },
   { path: "/concerns", icon: MessageIcon, label: "Concerns" },
+  {
+    path: "/app-version",
+    icon: SystemUpdateIcon,
+    label: "App Version",
+  },
+
+  { path: "/system-status", icon: MonitorHeartIcon, label: "System Status" },
   { path: "/settings", icon: SettingsIcon, label: "Settings" },
 ];
 
@@ -170,7 +179,7 @@ const Sidebar = ({ open, handleDrawerClose }) => {
           align="center"
           display="block"
         >
-          © {new Date().getFullYear()} AapKaKaam
+          © {new Date().getFullYear()} Uslugi Technology Pvt. Ltd.
         </Typography>
       </Box>
     </Drawer>

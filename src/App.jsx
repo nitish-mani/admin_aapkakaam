@@ -21,6 +21,8 @@ const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
 const ConcernsPage = lazy(() => import("./pages/ConcernsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const AppVersionManagement = lazy(() => import("./pages/AppVersionManagement"));
+const SystemStatus = lazy(() => import("./pages/SystemStatus"));
 
 const helmetContext = {};
 
@@ -62,6 +64,8 @@ function App() {
               <Route path="referrals" element={<ReferralsPage />} />
               <Route path="concerns" element={<ConcernsPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="app-version" element={<AppVersionManagement />} />
+              <Route path="system-status" element={<SystemStatus />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

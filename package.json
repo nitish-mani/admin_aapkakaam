@@ -23,7 +23,7 @@
     "react-redux": "^9.3.0",
     "react-router-dom": "^6.8.0",
     "react-toastify": "^9.1.0",
-    "recharts": "^2.5.0"
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",
