@@ -430,6 +430,20 @@ export const analyticsService = {
   },
 
   // ============================================
+  // HOME BANNER MANAGEMENT
+  // ============================================
+
+  getHomeBanner: async () => {
+    const response = await api.get("/admin/home-banner");
+    return response.data;
+  },
+
+  updateHomeBanner: async (data) => {
+    const response = await api.put("/admin/home-banner", data);
+    return response.data;
+  },
+
+  // ============================================
   // HEALTH CHECK
   // ============================================
 

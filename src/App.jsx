@@ -23,6 +23,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const AppVersionManagement = lazy(() => import("./pages/AppVersionManagement"));
 const SystemStatus = lazy(() => import("./pages/SystemStatus"));
+const HomeBannerManagement = lazy(() => import("./pages/HomeBanner"));
 
 const helmetContext = {};
 
@@ -66,6 +67,7 @@ function App() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="app-version" element={<AppVersionManagement />} />
               <Route path="system-status" element={<SystemStatus />} />
+              <Route path="home-banner" element={<HomeBannerManagement />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

@@ -140,6 +140,7 @@ const Layout = () => {
               </ListItemIcon>
               Settings
             </MenuItem>
+
             <Divider />
             <MenuItem onClick={handleLogout}>
               <ListItemIcon>

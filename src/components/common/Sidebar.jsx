@@ -28,6 +28,7 @@ import {
   Message as MessageIcon,
   SystemUpdate as SystemUpdateIcon,
   MonitorHeart as MonitorHeartIcon,
+  ImageOutlined as ImageOutlinedIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
@@ -85,6 +86,11 @@ const menuItems = [
 
   { path: "/system-status", icon: MonitorHeartIcon, label: "System Status" },
   { path: "/settings", icon: SettingsIcon, label: "Settings" },
+  {
+    path: "/home-banner",
+    icon: ImageOutlinedIcon,
+    label: "Home Banner",
+  },
 ];
 
 const Sidebar = ({ open, handleDrawerClose }) => {
