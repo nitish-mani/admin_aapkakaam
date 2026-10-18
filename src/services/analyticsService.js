@@ -443,6 +443,12 @@ export const analyticsService = {
     return response.data;
   },
 
+  async sendAdminNotification(payload) {
+    const response = await api.post("/admin/notifications/send", payload);
+
+    return response.data;
+  },
+
   // ============================================
   // HEALTH CHECK
   // ============================================

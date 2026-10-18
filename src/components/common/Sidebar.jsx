@@ -29,6 +29,7 @@ import {
   SystemUpdate as SystemUpdateIcon,
   MonitorHeart as MonitorHeartIcon,
   ImageOutlined as ImageOutlinedIcon,
+  NotificationsActive as NotificationsActiveIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
@@ -90,6 +91,11 @@ const menuItems = [
     path: "/home-banner",
     icon: ImageOutlinedIcon,
     label: "Home Banner",
+  },
+  {
+    path: "/notifications",
+    icon: NotificationsActiveIcon,
+    label: "Send Notification",
   },
 ];
 
