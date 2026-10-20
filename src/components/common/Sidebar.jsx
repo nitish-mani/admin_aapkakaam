@@ -29,6 +29,7 @@ import {
   SystemUpdate as SystemUpdateIcon,
   MonitorHeart as MonitorHeartIcon,
   ImageOutlined as ImageOutlinedIcon,
+  PriceChange as PriceChangeIcon,
   NotificationsActive as NotificationsActiveIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
@@ -91,6 +92,11 @@ const menuItems = [
     path: "/home-banner",
     icon: ImageOutlinedIcon,
     label: "Home Banner",
+  },
+  {
+    path: "/signup-fees",
+    icon: PriceChangeIcon,
+    label: "Signup Fee",
   },
   {
     path: "/notifications",

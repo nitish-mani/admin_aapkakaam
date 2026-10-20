@@ -443,6 +443,34 @@ export const analyticsService = {
     return response.data;
   },
 
+  // ============================================
+  // SIGNUP FEE MANAGEMENT
+  // ============================================
+
+  /**
+   * GET /api/admin/signup-fees
+   * Fetch current signup fees
+   */
+  getAdminSignupFees: async () => {
+    const response = await api.get("/admin/signup-fees");
+    return response.data;
+  },
+
+  /**
+   * PUT /api/admin/signup-fees
+   * Update signup fees
+   *
+   * Example payload:
+   * {
+   *   userAmountRupees: 0,
+   *   vendorAmountRupees: 50
+   * }
+   */
+  updateAdminSignupFees: async (data) => {
+    const response = await api.put("/admin/signup-fees", data);
+    return response.data;
+  },
+
   async sendAdminNotification(payload) {
     const response = await api.post("/admin/notifications/send", payload);
 

@@ -24,6 +24,7 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const AppVersionManagement = lazy(() => import("./pages/AppVersionManagement"));
 const SystemStatus = lazy(() => import("./pages/SystemStatus"));
 const HomeBannerManagement = lazy(() => import("./pages/HomeBanner"));
+const SignupFeeManagement = lazy(() => import("./pages/SignupFeeManagement"));
 const AdminNotificationManagement = lazy(
   () => import("./pages/AdminNotificationManagement"),
 );
@@ -70,6 +71,7 @@ function App() {
               <Route path="app-version" element={<AppVersionManagement />} />
               <Route path="system-status" element={<SystemStatus />} />
               <Route path="home-banner" element={<HomeBannerManagement />} />
+              <Route path="/signup-fees" element={<SignupFeeManagement />} />
               <Route
                 path="/notifications"
                 element={<AdminNotificationManagement />}
