@@ -477,6 +477,14 @@ export const analyticsService = {
     return response.data;
   },
 
+  getVendorSearchAnalytics: async (params) => {
+    const response = await api.get("/admin/vendor-search-analytics", {
+      params,
+    });
+
+    return response.data;
+  },
+
   // ============================================
   // HEALTH CHECK
   // ============================================

@@ -31,6 +31,7 @@ import {
   ImageOutlined as ImageOutlinedIcon,
   PriceChange as PriceChangeIcon,
   NotificationsActive as NotificationsActiveIcon,
+  ManageSearch as ManageSearchIcon,
 } from "@mui/icons-material";
 import { styled } from "@mui/material/styles";
 import { useAuth } from "../../contexts/AuthContext";
@@ -87,7 +88,6 @@ const menuItems = [
   },
 
   { path: "/system-status", icon: MonitorHeartIcon, label: "System Status" },
-  { path: "/settings", icon: SettingsIcon, label: "Settings" },
   {
     path: "/home-banner",
     icon: ImageOutlinedIcon,
@@ -103,6 +103,13 @@ const menuItems = [
     icon: NotificationsActiveIcon,
     label: "Send Notification",
   },
+  {
+    path: "/vendor-search-analytics",
+    icon: PersonSearchIcon,
+    label: "Vendor Search Analytics",
+  },
+
+  { path: "/settings", icon: SettingsIcon, label: "Settings" },
 ];
 
 const Sidebar = ({ open, handleDrawerClose }) => {

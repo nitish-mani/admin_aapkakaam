@@ -28,6 +28,9 @@ const SignupFeeManagement = lazy(() => import("./pages/SignupFeeManagement"));
 const AdminNotificationManagement = lazy(
   () => import("./pages/AdminNotificationManagement"),
 );
+const VendorSearchAnalytics = lazy(
+  () => import("./pages/VendorSearchAnalytics"),
+);
 const helmetContext = {};
 
 function App() {
@@ -67,7 +70,6 @@ function App() {
               <Route path="revenue" element={<RevenuePage />} />
               <Route path="referrals" element={<ReferralsPage />} />
               <Route path="concerns" element={<ConcernsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
               <Route path="app-version" element={<AppVersionManagement />} />
               <Route path="system-status" element={<SystemStatus />} />
               <Route path="home-banner" element={<HomeBannerManagement />} />
@@ -76,8 +78,14 @@ function App() {
                 path="/notifications"
                 element={<AdminNotificationManagement />}
               />
-            </Route>
 
+              <Route
+                path="vendor-search-analytics"
+                element={<VendorSearchAnalytics />}
+              />
+
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
